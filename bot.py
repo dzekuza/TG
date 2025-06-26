@@ -1,10 +1,10 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
-api_id = 123456     # 🔁 Replace with your real API ID
-api_hash = "abc123" # 🔁 Replace with your real API hash
-bot_token = "YOUR_BOT_TOKEN"  # 🔁 From @BotFather
-webapp_url = "https://yourdomain.com/webapp.html"  # 🔁 Replace with your hosted webapp URL
+api_id = 20680035     # 🔁 Replace with your real API ID
+api_hash = "822c839dffec0d61077103bd0e643f37" # 🔁 Replace with your real API hash
+bot_token = "8166370256:AAHMzFBpGP1ZNZ48b2U-aYixVv1xULQUKWE"  # 🔁 From @BotFather
+webapp_url = "tg-three-flax.vercel.app"  # 🔁 Replace with your hosted webapp URL
 
 app = Client("bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
