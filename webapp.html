@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Location Share</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <h2>📍 Share Your Location</h2>
+  <button onclick="shareLocation()">Send Location</button>
+
+  <script>
+    function shareLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          const data = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            type: Telegram.WebApp.initDataUnsafe?.user?.is_bot ? "driver" : "customer",
+            user_id: Telegram.WebApp.initDataUnsafe.user.id
+          };
+
+          fetch("https://n8n.yourdomain.com/webhook/webapp-location", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+          }).then(() => Telegram.WebApp.close());
+        });
+      } else {
+        alert("Geolocation not supported");
+      }
+    }
+  </script>
+</body>
+</html>
