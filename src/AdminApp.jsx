@@ -1139,54 +1139,103 @@ function ProductStatsGraph({ stats, period }) {
 }
 
 function RouteOptimizerPanel({ orders }) {
-  const [selected, setSelected] = useState([]);
-  const [driverLat, setDriverLat] = useState('');
-  const [driverLng, setDriverLng] = useState('');
   const [route, setRoute] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [etaMap, setEtaMap] = useState({});
 
-  const handleSelect = (order_id) => {
-    setSelected(sel => sel.includes(order_id) ? sel.filter(id => id !== order_id) : [...sel, order_id]);
-  };
-  const handleOptimize = async () => {
-    setLoading(true); setError(''); setRoute([]);
+  // Helper: filter active orders
+  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'arriving');
+
+  // Helper: parse lat/lng from order location
+  function parseLatLng(location) {
     try {
-      const res = await fetch('/api/optimize-route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_ids: selected,
-          driver_location: { lat: driverLat, lng: driverLng }
-        })
-      });
-      const data = await res.json();
-      if (data.route) setRoute(data.route);
-      else setError('No route found');
-    } catch {
-      setError('Failed to optimize route');
-    } finally {
-      setLoading(false);
+      if (typeof location === 'string') location = JSON.parse(location);
+    } catch {}
+    if (location.lat && location.lng) return [Number(location.lat), Number(location.lng)];
+    if (location.manual && typeof location.manual === 'string') {
+      const match = location.manual.match(/@([\d.\-]+),([\d.\-]+)/) || location.manual.match(/q=([\d.\-]+),([\d.\-]+)/);
+      if (match) return [Number(match[1]), Number(match[2])];
     }
+    return null;
+  }
+
+  const handleOptimize = async () => {
+    setLoading(true); setError(''); setRoute([]); setEtaMap({});
+    // 1. Get driver location
+    if (!navigator.geolocation) {
+      setError('Geolocation not supported');
+      setLoading(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const driverLat = pos.coords.latitude;
+      const driverLng = pos.coords.longitude;
+      const order_ids = activeOrders.map(o => o.order_id);
+      if (!order_ids.length) {
+        setError('No active orders to optimize');
+        setLoading(false);
+        return;
+      }
+      try {
+        // 2. Call backend to get optimal route and ETAs
+        const res = await fetch('/api/optimize-route', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_ids,
+            driver_location: { lat: driverLat, lng: driverLng }
+          })
+        });
+        const data = await res.json();
+        if (!data.route) {
+          setError('No route found');
+          setLoading(false);
+          return;
+        }
+        setRoute(data.route);
+        // 3. Use Google-provided ETAs
+        const etaMapNew = {};
+        data.route.forEach((order_id, idx) => {
+          etaMapNew[order_id] = data.etas && data.etas[idx] ? data.etas[idx] : '';
+        });
+        setEtaMap(etaMapNew);
+        // 4. Update each order's ETA in backend
+        for (const [idx, order_id] of data.route.entries()) {
+          const etaVal = etaMapNew[order_id];
+          const order = activeOrders.find(o => o.order_id === order_id);
+          if (!order) continue;
+          await fetch('/api/admin-orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              order_id,
+              status: order.status,
+              comment: order.comment,
+              eta: String(etaVal),
+              driver_location: JSON.stringify(parseLatLng(order.location)),
+              admin_note: order.admin_note,
+              user_id: order.user_id
+            })
+          });
+        }
+      } catch (e) {
+        setError('Failed to optimize route');
+      } finally {
+        setLoading(false);
+      }
+    }, (err) => {
+      setError('Failed to get driver location');
+      setLoading(false);
+    });
   };
+
   return (
     <div>
       <div className="mb-4 flex flex-col gap-2">
-        <div className="flex gap-2">
-          <input className="w-full px-3 py-2 border rounded" placeholder="Driver latitude" value={driverLat} onChange={e => setDriverLat(e.target.value)} />
-          <input className="w-full px-3 py-2 border rounded" placeholder="Driver longitude" value={driverLng} onChange={e => setDriverLng(e.target.value)} />
-        </div>
-        <div className="text-xs text-gray-500">Select orders to optimize route:</div>
-        <div className="max-h-40 overflow-y-auto border rounded p-2 bg-gray-50">
-          {orders.map(o => (
-            <label key={o.order_id} className="flex items-center gap-2 mb-1">
-              <input type="checkbox" checked={selected.includes(o.order_id)} onChange={() => handleSelect(o.order_id)} />
-              <span className="font-mono text-xs">{o.order_id}</span>
-              <span className="text-xs text-gray-700">{o.location && (typeof o.location === 'string' ? o.location.slice(0, 30) : JSON.stringify(o.location).slice(0, 30))}</span>
-            </label>
-          ))}
-        </div>
-        <button className="mt-2 bg-blue-600 text-white px-4 py-2 rounded font-semibold disabled:opacity-50" onClick={handleOptimize} disabled={loading || !selected.length || !driverLat || !driverLng}>Optimize Route</button>
+        <button className="mt-2 bg-blue-600 text-white px-4 py-2 rounded font-semibold disabled:opacity-50" onClick={handleOptimize} disabled={loading || !activeOrders.length}>
+          Optimize Route
+        </button>
       </div>
       {loading && <div className="text-blue-600">Calculating...</div>}
       {error && <div className="text-red-600 mb-2">{error}</div>}
@@ -1195,8 +1244,8 @@ function RouteOptimizerPanel({ orders }) {
           <h4 className="font-semibold mb-2">Recommended Delivery Order:</h4>
           <ol className="list-decimal ml-6">
             {route.map((order_id, idx) => {
-              const o = orders.find(x => x.order_id === order_id);
-              return <li key={order_id} className="mb-2"><span className="font-mono text-xs">{order_id}</span> {o && o.location && <span className="text-xs text-gray-700">{typeof o.location === 'string' ? o.location.slice(0, 30) : JSON.stringify(o.location).slice(0, 30)}</span>}</li>;
+              const o = activeOrders.find(x => x.order_id === order_id);
+              return <li key={order_id} className="mb-2"><span className="font-mono text-xs">{order_id}</span> {o && o.location && <span className="text-xs text-gray-700">{typeof o.location === 'string' ? o.location.slice(0, 30) : JSON.stringify(o.location).slice(0, 30)}</span>} {etaMap[order_id] && <span className="ml-2 text-green-700">ETA: {etaMap[order_id]} min</span>}</li>;
             })}
           </ol>
         </div>

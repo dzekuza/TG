@@ -1,4 +1,7 @@
 import { query } from './db.js';
+import fetch from 'node-fetch';
+
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY; // Set this in your .env or Vercel env
 
 function parseLatLng(location) {
   try {
@@ -12,18 +15,12 @@ function parseLatLng(location) {
   return null;
 }
 
-function haversine([lat1, lng1], [lat2, lng2]) {
-  const R = 6371;
-  const dLat = (lat2-lat1)*Math.PI/180;
-  const dLon = (lng2-lng1)*Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { order_ids, driver_location } = req.body;
   if (!order_ids || !driver_location) return res.status(400).json({ error: 'Missing order_ids or driver_location' });
+
+  // Fetch order locations
   const { rows } = await query(
     `SELECT order_id, location FROM orders WHERE order_id = ANY($1)`,
     [order_ids]
@@ -32,18 +29,38 @@ export default async function handler(req, res) {
     order_id: o.order_id,
     coords: parseLatLng(o.location)
   })).filter(o => o.coords);
-  let route = [];
-  let current = [Number(driver_location.lat), Number(driver_location.lng)];
-  let remaining = [...orders];
-  while (remaining.length) {
-    let minIdx = 0, minDist = Infinity;
-    for (let i = 0; i < remaining.length; i++) {
-      const dist = haversine(current, remaining[i].coords);
-      if (dist < minDist) { minDist = dist; minIdx = i; }
-    }
-    route.push(remaining[minIdx].order_id);
-    current = remaining[minIdx].coords;
-    remaining.splice(minIdx, 1);
+
+  if (!orders.length) return res.status(400).json({ error: 'No valid order locations' });
+
+  // Prepare waypoints for Google API
+  const origin = `${driver_location.lat},${driver_location.lng}`;
+  const waypoints = orders.map(o => o.coords.join(',')).join('|');
+
+  // Google Directions API call (optimize:true for best order, live traffic)
+  const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${origin}&waypoints=optimize:true|${waypoints}&departure_time=now&key=${GOOGLE_MAPS_API_KEY}`;
+
+  const gRes = await fetch(url);
+  const gData = await gRes.json();
+
+  if (!gData.routes || !gData.routes[0]) {
+    return res.status(500).json({ error: 'No route found from Google' });
   }
-  res.status(200).json({ route });
+
+  // Google's waypoint_order tells us the optimal order
+  const orderSequence = gData.routes[0].waypoint_order.map(idx => orders[idx].order_id);
+
+  // Extract ETAs for each leg
+  const legs = gData.routes[0].legs;
+  let etaMins = [];
+  let total = 0;
+  for (let i = 1; i < legs.length; i++) { // skip first leg (origin to first stop)
+    total += Math.round(legs[i].duration_in_traffic.value / 60);
+    etaMins.push(total);
+  }
+
+  // Return the optimal order and ETAs
+  res.status(200).json({
+    route: orderSequence,
+    etas: etaMins // in minutes, per stop
+  });
 } 
