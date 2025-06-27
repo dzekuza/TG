@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'public',
+    outDir: 'dist',
     rollupOptions: {
       input: {
         main: 'index.html',
@@ -12,7 +12,6 @@ export default defineConfig({
       }
     }
   },
-  publicDir: 'public',
   server: {
     proxy: {
       '/api': {
