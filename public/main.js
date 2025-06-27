@@ -131,8 +131,21 @@ getLocationBtn.addEventListener('click', async () => {
     manualField = document.createElement('input');
     manualField.type = 'text';
     manualField.id = 'manual-location-field';
-    manualField.placeholder = 'Paste your location (lat,lng, address, or Google Maps link)';
+    manualField.placeholder = 'Paste your location (lat, lng, address, or Google Maps link)';
     manualField.className = 'order-comment';
+    manualField.style.marginTop = '12px';
+    manualField.style.fontWeight = '500';
+    manualField.style.letterSpacing = '0.01em';
+    manualField.style.background = '#23272f';
+    manualField.style.border = '1.5px solid #ffb347';
+    manualField.style.color = '#fff';
+    manualField.style.borderRadius = '8px';
+    manualField.style.padding = '10px';
+    manualField.style.fontSize = '1rem';
+    manualField.style.transition = 'border 0.2s';
+    manualField.style.width = '100%';
+    manualField.style.boxSizing = 'border-box';
+    manualField.style.height = '40px';
     locationStatusModal.parentNode.insertBefore(manualField, locationStatusModal.nextSibling);
   }
   manualField.style.display = 'block';
@@ -307,6 +320,26 @@ async function renderPastOrders() {
   } catch (e) {
     pastOrdersSection.innerHTML = '<div class="order-history-item">Failed to load past orders.</div>';
   }
+}
+
+// Render customer order overview with new card style
+export function renderCustomerOrder(order) {
+  let items = '';
+  try {
+    const parsed = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+    items = Array.isArray(parsed)
+      ? parsed.map(i => `<span style='font-size:1.2em;'>${i.emoji ? i.emoji + ' ' : ''}</span><b>${i.name || i.meal || ''}</b>${i.qty ? ' <span class=\'qty-badge\'>' + i.qty + '</span>' : ''}`).join(' ')
+      : order.items;
+  } catch { items = order.items; }
+  return `<div class='customer-order-card'>
+    <div class='customer-order-row'><span class='customer-order-label'>Order ID:</span> <span class='customer-order-value'>${order.order_id}</span></div>
+    <div class='customer-order-row'><span class='customer-order-label'>Items:</span> <span class='customer-order-value'>${items}</span></div>
+    <div class='customer-order-row'><span class='customer-order-label'>Comment:</span> <span class='customer-order-value'>${order.comment || '-'}</span></div>
+    <div class='customer-order-row'><span class='customer-order-label'>Status:</span> <span class='customer-order-value'>${order.status || '-'}</span></div>
+    <div class='customer-order-row'><span class='customer-order-label'>ETA:</span> <span class='customer-order-value'>${order.eta ? order.eta + ' min' : '-'}</span></div>
+    <div class='customer-order-row'><span class='customer-order-label'>Driver Location:</span> <span class='customer-order-value'>${order.driver_location || '-'}</span></div>
+    <div class='order-time'>${order.created_at ? new Date(order.created_at).toLocaleString() : ''}</div>
+  </div>`;
 }
 
 // Telegram WebApp initialization
