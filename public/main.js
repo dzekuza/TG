@@ -158,18 +158,49 @@ function pollOrderStatus() {
   }, 5000);
 }
 
+// --- NAVIGATION LOGIC ---
+const navNewOrder = document.getElementById('nav-new-order');
+const navPastOrders = document.getElementById('nav-past-orders');
+const orderSection = document.getElementById('order-section');
+const pastOrdersSection = document.getElementById('past-orders-section');
+
+navNewOrder.addEventListener('click', () => {
+  navNewOrder.classList.add('active');
+  navPastOrders.classList.remove('active');
+  orderSection.style.display = '';
+  pastOrdersSection.style.display = 'none';
+});
+navPastOrders.addEventListener('click', () => {
+  navPastOrders.classList.add('active');
+  navNewOrder.classList.remove('active');
+  orderSection.style.display = 'none';
+  pastOrdersSection.style.display = '';
+  renderPastOrders();
+});
+
+// --- ORDER STATUS UI/UPDATES ---
 function updateOrderStatusUI(status) {
-  const statusDiv = document.getElementById('order-status-ui');
-  if (!statusDiv) return;
+  if (!orderSection) return;
+  orderSection.innerHTML = '';
   if (!status || status.status === 'pending') {
-    statusDiv.innerHTML = '';
+    orderSection.innerHTML = '';
     return;
   }
   if (status.status === 'eta') {
-    statusDiv.innerHTML = `<div class="order-update eta">⏱️ Estimated arrival: <b>${status.eta} min</b></div>`;
-  } else if (status.status === 'arrived') {
-    statusDiv.innerHTML = '<div class="order-update arrived">🚗 Your order has arrived!</div>';
+    orderSection.innerHTML += `<div class="order-update eta">⏱️ Estimated arrival: <b>${status.eta} min</b></div>`;
   }
+  if (status.status === 'arrived') {
+    orderSection.innerHTML += '<div class="order-update arrived">🚗 Your order has arrived!</div>';
+  }
+  if (status.driverLocation) {
+    orderSection.innerHTML += `<div class="order-update driver-location">🚗 Driver shared location: <a href='https://www.google.com/maps?q=${status.driverLocation.latitude},${status.driverLocation.longitude}' target='_blank'>View on map</a></div>`;
+  }
+}
+
+// --- PAST ORDERS (demo: fetch from localStorage) ---
+function renderPastOrders() {
+  // For demo, just show a static message or fetch from localStorage if you store order history
+  pastOrdersSection.innerHTML = '<div class="order-history-item">No past orders yet.</div>';
 }
 
 // Telegram WebApp initialization
