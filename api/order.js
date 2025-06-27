@@ -1,7 +1,7 @@
 // api/order.js
 import fs from 'fs';
 import path from 'path';
-import db from './db.js';
+import * as db from './db.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export default async function handler(req, res) {
