@@ -11,66 +11,102 @@
       background-color: #f9f9f9;
       padding: 20px;
     }
-    select, button {
+
+    label {
+      font-weight: bold;
+    }
+
+    input, select, button {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
       font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    button:disabled {
+      opacity: 0.6;
     }
   </style>
 </head>
 <body>
 
-<h2>🚀 Order Your Meal</h2>
+  <h2>🚀 Order Your Meal</h2>
 
-<label for="product">Choose product:</label>
-<select id="product">
-  <option value="Pizza">Pizza</option>
-  <option value="Burger">Burger</option>
-  <option value="Sushi">Sushi</option>
-</select>
+  <label for="product">Choose product:</label>
+  <select id="product">
+    <option value="Pizza">Pizza</option>
+    <option value="Burger">Burger</option>
+    <option value="Sushi">Sushi</option>
+  </select>
 
-<button onclick="submitOrder()">📍 Share Location & Order</button>
+  <label for="address">Your Address (optional):</label>
+  <input type="text" id="address" placeholder="E.g. Jakšto g. 3, Vilnius" />
 
-<script>
-  async function submitOrder() {
-    if (!navigator.geolocation) {
-      alert('Geolocation not supported.');
-      return;
-    }
+  <button id="orderBtn" onclick="submitOrder()">📍 Share Location & Order</button>
 
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      const product = document.getElementById('product').value;
+  <script>
+    async function submitOrder() {
+      const btn = document.getElementById("orderBtn");
+      btn.disabled = true;
+      btn.innerText = "⏳ Placing order...";
 
-      const tg = window.Telegram.WebApp;
-      const payload = {
-        chat_id: tg.initDataUnsafe.user.id,
-        customer_username: tg.initDataUnsafe.user.username,
-        product,
-        lat,
-        lng,
-        pickup_address: "User shared location",
-        destination_address: "N/A" // Optional, or replace with form input
-      };
+      if (!navigator.geolocation) {
+        alert('Geolocation not supported.');
+        resetButton();
+        return;
+      }
 
-      const res = await fetch('https://n8n.srv824584.hstgr.cloud/webhook/order-food', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const product = document.getElementById('product').value;
+        const addressInput = document.getElementById('address').value;
+
+        const tg = window.Telegram.WebApp;
+
+        const payload = {
+          chat_id: tg?.initDataUnsafe?.user?.id || null,
+          customer_username: tg?.initDataUnsafe?.user?.username || "anonymous",
+          product,
+          lat,
+          lng,
+          pickup_address: addressInput || "User shared location",
+          destination_address: "N/A"
+        };
+
+        try {
+          const res = await fetch('https://n8n.srv824584.hstgr.cloud/webhook/order-food', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            alert("✅ Order placed! Your driver will contact you shortly.");
+            if (tg?.close) tg.close();
+          } else {
+            const errorText = await res.text();
+            console.error("Order failed:", errorText);
+            alert('❌ Order failed! Please try again.');
+          }
+        } catch (err) {
+          console.error("Error:", err);
+          alert('❌ Something went wrong!');
+        }
+
+        resetButton();
+      }, () => {
+        alert('❌ Could not get your location.');
+        resetButton();
       });
 
-      if (res.ok) {
-        tg.close(); // or show a success message
-      } else {
-        alert('Order failed!');
+      function resetButton() {
+        btn.disabled = false;
+        btn.innerText = "📍 Share Location & Order";
       }
-    }, () => {
-      alert('Could not get location.');
-    });
-  }
-</script>
+    }
+  </script>
 
 </body>
 </html>
