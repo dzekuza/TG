@@ -164,12 +164,13 @@ export function PastOrders({ orders = [] }) {
               {/* Order Header */}
               <div className="flex items-start justify-between mb-4">
                 <div>
+                  {/* Status tag above order id */}
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border mb-1 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
+                    {statusConfig.icon}
+                    <span className="text-xs">{statusConfig.label}</span>
+                  </div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-gray-900 text-sm">#{order.order_id}</span>
-                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
-                      {statusConfig.icon}
-                      <span className="text-xs">{statusConfig.label}</span>
-                    </div>
                   </div>
                   <div className="flex items-center gap-1 text-gray-500 text-sm">
                     <Calendar className="w-3 h-3" />

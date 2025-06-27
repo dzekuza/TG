@@ -213,12 +213,12 @@ export default function AdminApp() {
                 <div key={order.order_id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
+                      <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border mb-1 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
+                        {statusConfig.icon}
+                        <span className="text-sm font-medium">{statusConfig.label}</span>
+                      </div>
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-lg font-semibold text-gray-900">#{order.order_id}</span>
-                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
-                          {statusConfig.icon}
-                          <span className="text-sm font-medium">{statusConfig.label}</span>
-                        </div>
                       </div>
                       <div className="flex items-center gap-1 text-gray-500 text-sm">
                         <Calendar className="w-4 h-4" />
