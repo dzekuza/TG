@@ -118,10 +118,12 @@ submitOrderBtn.addEventListener('click', async () => {
   }
   // Accept manual location as string if geolocation is not available
   let locationToSend = userCoords;
-  if (typeof userCoords === 'string') {
-    locationToSend = { manual: userCoords };
+  // Accept if userCoords is a string and not empty
+  if (typeof userCoords === 'string' && userCoords.trim() !== '') {
+    locationToSend = { manual: userCoords.trim() };
   }
-  if (!locationToSend || (typeof locationToSend === 'object' && !locationToSend.lat)) {
+  // Accept if userCoords is an object with lat/lng, or manual string
+  if (!locationToSend || (typeof locationToSend === 'object' && !locationToSend.lat && !locationToSend.manual)) {
     alert('Please add your location.');
     return;
   }
