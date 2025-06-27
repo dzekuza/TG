@@ -244,9 +244,43 @@ function updateOrderStatusUI(status) {
 }
 
 // --- PAST ORDERS (demo: fetch from localStorage) ---
-function renderPastOrders() {
-  // For demo, just show a static message or fetch from localStorage if you store order history
-  pastOrdersSection.innerHTML = '<div class="order-history-item">No past orders yet.</div>';
+async function renderPastOrders() {
+  const tgUser = Telegram.WebApp.initDataUnsafe.user;
+  if (!tgUser) {
+    pastOrdersSection.innerHTML = '<div class="order-history-item">Please log in to view past orders.</div>';
+    return;
+  }
+  pastOrdersSection.innerHTML = '<div class="order-history-item">Loading...</div>';
+  try {
+    const res = await fetch(`/api/orders?user_id=${tgUser.id}`);
+    const data = await res.json();
+    if (!data.orders || !data.orders.length) {
+      pastOrdersSection.innerHTML = '<div class="order-history-item">No past orders yet.</div>';
+      return;
+    }
+    pastOrdersSection.innerHTML = data.orders.map(order => {
+      let items = '';
+      try {
+        const parsed = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        items = Array.isArray(parsed)
+          ? parsed.map(i => `${i.emoji ? i.emoji + ' ' : ''}${i.name || i.meal || ''}${i.qty ? ' x' + i.qty : ''}`).join(', ')
+          : order.items;
+      } catch { items = order.items; }
+      let status = order.status ? `<div>Status: <b>${order.status}</b></div>` : '';
+      let eta = order.eta ? `<div>ETA: <b>${order.eta} min</b></div>` : '';
+      let created = order.created_at ? `<div class='order-time'>${new Date(order.created_at).toLocaleString()}</div>` : '';
+      return `<div class='order-history-item'>
+        <div><b>Order ID:</b> ${order.order_id}</div>
+        <div><b>Items:</b> ${items}</div>
+        <div><b>Comment:</b> ${order.comment || '-'}</div>
+        ${status}
+        ${eta}
+        ${created}
+      </div>`;
+    }).join('');
+  } catch (e) {
+    pastOrdersSection.innerHTML = '<div class="order-history-item">Failed to load past orders.</div>';
+  }
 }
 
 // Telegram WebApp initialization
