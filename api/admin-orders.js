@@ -2,13 +2,7 @@
 import { query } from './db.js';
 
 export default async function handler(req, res) {
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'supersecret';
   if (req.method === 'GET') {
-    const { password } = req.query;
-    if (password !== ADMIN_PASSWORD) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
     // List all orders, newest first
     const { rows } = await query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 50');
     // Fetch admin notes for all user_ids
@@ -66,11 +60,7 @@ export default async function handler(req, res) {
     return;
   }
   if (req.method === 'DELETE') {
-    const { order_id, password } = req.body;
-    if (password !== ADMIN_PASSWORD) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
+    const { order_id } = req.body;
     if (!order_id) {
       res.status(400).json({ error: 'Missing order_id' });
       return;

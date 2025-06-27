@@ -20,10 +20,21 @@ export default async function handler(req, res) {
 
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(500).json({ error: 'Error parsing form data' });
-    const file = files.file;
+
+    // Support any field name, fallback to first file
+    let file = files.file || Object.values(files)[0];
     if (!file) return res.status(400).json({ error: 'No file uploaded' });
-    const fileData = fs.readFileSync(file.filepath);
-    const fileName = `prod/${Date.now()}-${file.originalFilename}`;
+
+    let fileData;
+    if (file.filepath) {
+      fileData = fs.readFileSync(file.filepath);
+    } else if (file.buffer) {
+      fileData = file.buffer;
+    } else {
+      return res.status(400).json({ error: 'File data not found' });
+    }
+
+    const fileName = `prod/${Date.now()}-${file.originalFilename || file.newFilename || 'upload'}`;
     const { data, error } = await supabase.storage
       .from('prod')
       .upload(fileName, fileData, {
