@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 🧾 Order: ${meal}
 📍 Location: ${location.lat && location.lng ? `https://www.google.com/maps?q=${location.lat},${location.lng}` : (location.manual || '-') }
 📝 Comment: ${comment || '-'}
-\nOrder ID: ${orderId}
+\nOrder ID: ${order_id}
 Driver: Please press a button below to update order status or reply to this message with your location.
   `;
 
