@@ -9,6 +9,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Check required env vars
+  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+  const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+  if (!TELEGRAM_BOT_TOKEN || !ADMIN_CHAT_ID) {
+    console.error('Missing TELEGRAM_BOT_TOKEN or ADMIN_CHAT_ID in environment variables');
+    return res.status(500).json({ error: 'Server misconfiguration: missing Telegram credentials.' });
+  }
+
   console.log('Incoming order request:', req.body);
   const { meal, user, location, comment } = req.body;
   const order_id = `${user.id}_${Date.now()}`;
@@ -16,8 +24,6 @@ export default async function handler(req, res) {
   const user_id = user.id;
   const status = 'pending';
 
-  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-  const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
   console.log('TELEGRAM_BOT_TOKEN:', TELEGRAM_BOT_TOKEN ? 'Loaded' : 'Missing');
   console.log('ADMIN_CHAT_ID:', ADMIN_CHAT_ID ? 'Loaded' : 'Missing');
 
