@@ -1,4 +1,5 @@
 import { Clock, MessageSquare, MapPin, Calendar, CheckCircle, AlertCircle, Package, Truck } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const getStatusConfig = (status) => {
   switch (status) {
@@ -76,6 +77,23 @@ const formatDate = (dateString) => {
 };
 
 export function PastOrders({ orders = [] }) {
+  // Helper for live ETA countdown
+  function useLiveETA(eta, updatedAt) {
+    const [remaining, setRemaining] = useState(eta);
+    useEffect(() => {
+      if (!eta || !updatedAt) return;
+      const start = new Date(updatedAt).getTime();
+      const interval = setInterval(() => {
+        const now = Date.now();
+        const elapsed = Math.floor((now - start) / 60000); // minutes
+        const left = Math.max(0, eta - elapsed);
+        setRemaining(left);
+      }, 10000);
+      return () => clearInterval(interval);
+    }, [eta, updatedAt]);
+    return remaining;
+  }
+
   if (orders.length === 0) {
     return (
       <div className="p-4 pb-20 flex flex-col items-center justify-center min-h-96">
@@ -109,9 +127,40 @@ export function PastOrders({ orders = [] }) {
           } catch { 
             items = order.items; 
           }
-          
+
+          // Location logic
+          let loc = order.location;
+          let link = '';
+          let isGoogleMaps = false;
+          let lat = null, lng = null;
+          try {
+            if (typeof loc === 'string' && loc.startsWith('{')) loc = JSON.parse(loc);
+          } catch {}
+          link = loc?.manual || loc;
+          isGoogleMaps = typeof link === 'string' && link.includes('google.com/maps');
+          if (isGoogleMaps) {
+            const match = link.match(/@([\d.\-]+),([\d.\-]+)/);
+            if (match) {
+              lat = match[1];
+              lng = match[2];
+            }
+          }
+
+          // ETA logic
+          const liveETA = order.eta ? useLiveETA(Number(order.eta), order.updated_at || order.created_at) : null;
+
           return (
             <div key={order.order_id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              {/* ETA at top */}
+              <div className="mb-3">
+                <div className="w-full p-3 rounded-lg text-center font-semibold text-blue-800 bg-blue-50 border border-blue-100">
+                  <Clock className="w-4 h-4 inline-block mr-1 align-text-bottom text-blue-600" />
+                  {order.eta
+                    ? (liveETA > 0 ? `ETA: ${liveETA} min` : 'Arriving soon')
+                    : 'ETA: Calculating...'}
+                </div>
+              </div>
+
               {/* Order Header */}
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -143,16 +192,6 @@ export function PastOrders({ orders = [] }) {
                 </div>
               </div>
 
-              {/* ETA */}
-              {order.eta && (
-                <div className="flex items-center gap-2 mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm text-blue-800">
-                    Estimated arrival: <strong>{order.eta} min</strong>
-                  </span>
-                </div>
-              )}
-
               {/* Admin Comments */}
               {order.comment && (
                 <div className="flex items-start gap-2 mb-3 p-3 bg-green-50 rounded-lg border border-green-100">
@@ -165,11 +204,25 @@ export function PastOrders({ orders = [] }) {
               )}
 
               {/* Delivery Info */}
-              {order.location && (
+              {link && (
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-3 h-3" />
-                    <span>{order.location}</span>
+                    {isGoogleMaps && lat && lng ? (
+                      <>
+                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">Open in Google Maps</a>
+                        <iframe
+                          title="Google Map"
+                          width="100%"
+                          height="180"
+                          className="rounded-lg border mt-2"
+                          src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
+                          allowFullScreen
+                        ></iframe>
+                      </>
+                    ) : (
+                      <span>{typeof link === 'string' ? link : JSON.stringify(link)}</span>
+                    )}
                   </div>
                 </div>
               )}

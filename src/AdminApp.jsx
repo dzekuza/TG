@@ -163,16 +163,19 @@ export default function AdminApp() {
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Status Tabs */}
-        <div className="flex gap-2 mb-6">
-          {statusTabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-lg font-medium border transition-colors ${activeTab === tab.key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="overflow-x-auto mb-6">
+          <div className="flex gap-2 min-w-max w-full">
+            {statusTabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium border transition-colors whitespace-nowrap ${activeTab === tab.key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'}`}
+                style={{ minWidth: 120 }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {orders.length === 0 ? (
@@ -252,20 +255,23 @@ export default function AdminApp() {
                           if (typeof loc === 'string') loc = JSON.parse(loc);
                         } catch {}
                         const link = loc?.manual || loc;
-                        const isGoogleMaps = typeof link === 'string' && link.includes('google.com/maps');
+                        // Try to extract lat/lng from any link
                         let lat = null, lng = null;
-                        if (isGoogleMaps) {
-                          // Try to extract lat/lng from the link
-                          const match = link.match(/@([\d.\-]+),([\d.\-]+)/);
+                        let found = false;
+                        if (typeof link === 'string') {
+                          // Google Maps @lat,lng or q=lat,lng
+                          let match = link.match(/@([\d.\-]+),([\d.\-]+)/);
+                          if (!match) match = link.match(/q=([\d.\-]+),([\d.\-]+)/);
                           if (match) {
                             lat = match[1];
                             lng = match[2];
+                            found = true;
                           }
                         }
-                        return isGoogleMaps && (lat && lng) ? (
+                        return found && lat && lng ? (
                           <div className="flex flex-col gap-2">
                             <iframe
-                              title="Google Map"
+                              title="Map"
                               width="100%"
                               height="200"
                               className="rounded-lg border"
@@ -279,7 +285,7 @@ export default function AdminApp() {
                                 rel="noopener noreferrer"
                                 className="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-blue-200"
                               >
-                                Open in Waze
+                                Go with Waze
                               </a>
                               <a
                                 href={link}
@@ -287,7 +293,7 @@ export default function AdminApp() {
                                 rel="noopener noreferrer"
                                 className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-gray-200"
                               >
-                                Open in Google Maps
+                                Open in Maps
                               </a>
                             </div>
                           </div>
