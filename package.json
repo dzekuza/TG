@@ -11,15 +11,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "body-parser": "^1.20.2",
-    "node-fetch": "^3.3.2",
-    "dotenv": "^16.3.1",
-    "pg": "^8.11.3",
-    "uuid": "^9.0.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "lucide-react": "^0.294.0",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -45,12 +36,22 @@
     "@radix-ui/react-toggle": "^1.1.2",
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.6",
+    "@vercel/blob": "^1.1.1",
+    "autoprefixer": "^10.4.16",
+    "body-parser": "^1.20.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.0.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "lucide-react": "^0.294.0",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.11.3",
+    "postcss": "^8.4.32",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "tailwind-merge": "^2.0.0",
     "tailwindcss": "^3.3.6",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
@@ -58,7 +59,12 @@
     "@vitejs/plugin-react": "^4.1.1",
     "vite": "^4.5.0"
   },
-  "keywords": ["telegram", "food", "ordering", "bot"],
+  "keywords": [
+    "telegram",
+    "food",
+    "ordering",
+    "bot"
+  ],
   "author": "",
   "license": "ISC"
 }

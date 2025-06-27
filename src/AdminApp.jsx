@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Clock, MessageSquare, MapPin, Calendar, CheckCircle, AlertCircle, Package, Truck, RefreshCw, Users, Inbox } from 'lucide-react';
+import { upload } from '@vercel/blob';
 
 const getStatusConfig = (status) => {
   switch (status) {
@@ -215,6 +216,13 @@ export default function AdminApp() {
         >
           <Inbox className="w-5 h-5" />
           <span className="text-xs font-semibold">Messages</span>
+        </button>
+        <button
+          onClick={() => setActiveNav('route')}
+          className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'route' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+        >
+          <Truck className="w-5 h-5" />
+          <span className="text-xs font-semibold">Route</span>
         </button>
         <button
           onClick={() => setActiveNav('admin')}
@@ -542,6 +550,14 @@ export default function AdminApp() {
             <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
               <h3 className="text-lg font-semibold mb-4">Admin Chat</h3>
               <AdminChatPanel adminPassword={adminPassword} />
+            </div>
+          </div>
+        )}
+        {activeNav === 'route' && (
+          <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
+            <div className="bg-white rounded-xl shadow p-6 w-full max-w-2xl">
+              <h3 className="text-lg font-semibold mb-4">Route Optimizer</h3>
+              <RouteOptimizerPanel orders={orders} />
             </div>
           </div>
         )}
@@ -956,23 +972,27 @@ function ProductManagementPanel({ mainAdminPassword }) {
     const file = e.target.files[0];
     if (!file) return;
     setImagePreview(URL.createObjectURL(file));
-    // Upload to imgur
-    const formData = new FormData();
-    formData.append('image', file);
+    setError('');
+    setLoading(true);
     try {
-      const res = await fetch('https://api.imgur.com/3/image', {
+      // Use Vercel Blob upload
+      const formData = new FormData();
+      formData.append('file', file);
+      // POST to /api/upload (see below for backend handler)
+      const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { Authorization: `Client-ID ${import.meta.env.VITE_IMGUR_CLIENT_ID}` },
         body: formData
       });
       const data = await res.json();
-      if (data.success && data.data.link) {
-        setForm(f => ({ ...f, image_url: data.data.link }));
+      if (data.url) {
+        setForm(f => ({ ...f, image_url: data.url }));
       } else {
         setError('Image upload failed');
       }
     } catch {
       setError('Image upload failed');
+    } finally {
+      setLoading(false);
     }
   };
   return (
@@ -1114,6 +1134,73 @@ function ProductStatsGraph({ stats, period }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function RouteOptimizerPanel({ orders }) {
+  const [selected, setSelected] = useState([]);
+  const [driverLat, setDriverLat] = useState('');
+  const [driverLng, setDriverLng] = useState('');
+  const [route, setRoute] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSelect = (order_id) => {
+    setSelected(sel => sel.includes(order_id) ? sel.filter(id => id !== order_id) : [...sel, order_id]);
+  };
+  const handleOptimize = async () => {
+    setLoading(true); setError(''); setRoute([]);
+    try {
+      const res = await fetch('/api/optimize-route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_ids: selected,
+          driver_location: { lat: driverLat, lng: driverLng }
+        })
+      });
+      const data = await res.json();
+      if (data.route) setRoute(data.route);
+      else setError('No route found');
+    } catch {
+      setError('Failed to optimize route');
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <div>
+      <div className="mb-4 flex flex-col gap-2">
+        <div className="flex gap-2">
+          <input className="w-full px-3 py-2 border rounded" placeholder="Driver latitude" value={driverLat} onChange={e => setDriverLat(e.target.value)} />
+          <input className="w-full px-3 py-2 border rounded" placeholder="Driver longitude" value={driverLng} onChange={e => setDriverLng(e.target.value)} />
+        </div>
+        <div className="text-xs text-gray-500">Select orders to optimize route:</div>
+        <div className="max-h-40 overflow-y-auto border rounded p-2 bg-gray-50">
+          {orders.map(o => (
+            <label key={o.order_id} className="flex items-center gap-2 mb-1">
+              <input type="checkbox" checked={selected.includes(o.order_id)} onChange={() => handleSelect(o.order_id)} />
+              <span className="font-mono text-xs">{o.order_id}</span>
+              <span className="text-xs text-gray-700">{o.location && (typeof o.location === 'string' ? o.location.slice(0, 30) : JSON.stringify(o.location).slice(0, 30))}</span>
+            </label>
+          ))}
+        </div>
+        <button className="mt-2 bg-blue-600 text-white px-4 py-2 rounded font-semibold disabled:opacity-50" onClick={handleOptimize} disabled={loading || !selected.length || !driverLat || !driverLng}>Optimize Route</button>
+      </div>
+      {loading && <div className="text-blue-600">Calculating...</div>}
+      {error && <div className="text-red-600 mb-2">{error}</div>}
+      {route.length > 0 && (
+        <div className="mt-4">
+          <h4 className="font-semibold mb-2">Recommended Delivery Order:</h4>
+          <ol className="list-decimal ml-6">
+            {route.map((order_id, idx) => {
+              const o = orders.find(x => x.order_id === order_id);
+              return <li key={order_id} className="mb-2"><span className="font-mono text-xs">{order_id}</span> {o && o.location && <span className="text-xs text-gray-700">{typeof o.location === 'string' ? o.location.slice(0, 30) : JSON.stringify(o.location).slice(0, 30)}</span>}</li>;
+            })}
+          </ol>
+        </div>
+      )}
     </div>
   );
 } 
