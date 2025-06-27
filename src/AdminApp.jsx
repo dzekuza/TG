@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Clock, MessageSquare, MapPin, Calendar, CheckCircle, AlertCircle, Package, Truck, RefreshCw, Users, Inbox } from 'lucide-react';
 
 const getStatusConfig = (status) => {
@@ -538,19 +538,311 @@ export default function AdminApp() {
           </>
         )}
         {activeNav === 'messages' && (
-          <div className="min-h-[300px] flex items-center justify-center text-gray-500 text-lg">Messages (coming soon)</div>
+          <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
+            <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
+              <h3 className="text-lg font-semibold mb-4">Admin Chat</h3>
+              <AdminChatPanel adminPassword={adminPassword} />
+            </div>
+          </div>
         )}
         {activeNav === 'admin' && (
           !mainAdminEntered ? renderMainAdminPrompt() : (
             <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
               <h2 className="text-2xl font-bold mb-4">Driver Stats</h2>
-              <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg text-center">
-                <div className="text-gray-500">Driver stats and analytics will be shown here.</div>
+              <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl text-center mb-8">
+                <DriverStatsPanel mainAdminPassword={mainAdminPassword} />
+              </div>
+              {/* Admin user management */}
+              <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
+                <h3 className="text-lg font-semibold mb-2">Admin Users</h3>
+                <AdminUsersPanel mainAdminPassword={mainAdminPassword} />
               </div>
             </div>
           )
         )}
       </div>
+    </div>
+  );
+}
+
+function AdminUsersPanel({ mainAdminPassword }) {
+  const [users, setUsers] = useState([]);
+  const [userId, setUserId] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin-users?password=${encodeURIComponent(mainAdminPassword)}`);
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const data = await res.json();
+      setUsers(data.users || []);
+    } catch (e) {
+      setError('Error loading users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchUsers(); }, []);
+
+  const handleAdd = async () => {
+    if (!userId) return setError('User ID required');
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin-users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, nickname, password: mainAdminPassword })
+      });
+      if (!res.ok) throw new Error('Failed to add user');
+      setUserId(''); setNickname('');
+      fetchUsers();
+    } catch (e) {
+      setError('Error adding user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemove = async (uid) => {
+    if (!window.confirm('Remove this admin user?')) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin-users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: uid, password: mainAdminPassword })
+      });
+      if (!res.ok) throw new Error('Failed to remove user');
+      fetchUsers();
+    } catch (e) {
+      setError('Error removing user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex gap-2 mb-4">
+        <input
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+          placeholder="User ID"
+          value={userId}
+          onChange={e => setUserId(e.target.value)}
+        />
+        <input
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+          placeholder="Nickname (optional)"
+          value={nickname}
+          onChange={e => setNickname(e.target.value)}
+        />
+        <button
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
+          onClick={handleAdd}
+          disabled={loading}
+        >Add</button>
+      </div>
+      {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+      <ul className="divide-y divide-gray-200">
+        {users.map(u => (
+          <li key={u.user_id} className="flex items-center justify-between py-2">
+            <div className="flex flex-col text-left">
+              <span className="font-mono text-sm">{u.user_id}</span>
+              {u.nickname && <span className="text-xs text-gray-500">{u.nickname}</span>}
+            </div>
+            <button
+              className="text-red-600 hover:underline text-xs"
+              onClick={() => handleRemove(u.user_id)}
+              disabled={loading}
+            >Remove</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DriverStatsPanel({ mainAdminPassword }) {
+  const [stats, setStats] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    setError('');
+    fetch(`/api/admin-users?stats=1&password=${encodeURIComponent(mainAdminPassword)}`)
+      .then(res => res.json())
+      .then(data => {
+        setStats(data.stats || []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Error loading stats');
+        setLoading(false);
+      });
+  }, [mainAdminPassword]);
+
+  // Aggregate totals per user
+  const userTotals = {};
+  stats.forEach(s => {
+    if (!userTotals[s.user_id]) userTotals[s.user_id] = { orders: 0, profit: 0, hours: 0, km: 0, nickname: s.nickname };
+    userTotals[s.user_id].orders += Number(s.orders_delivered || 0);
+    userTotals[s.user_id].profit += Number(s.profit || 0);
+    userTotals[s.user_id].hours += Number(s.hours_worked || 0);
+    userTotals[s.user_id].km += Number(s.km_driven || 0);
+  });
+
+  return (
+    <div className="overflow-x-auto">
+      <h3 className="text-lg font-semibold mb-4">All Drivers - Stats</h3>
+      {loading ? (
+        <div className="text-gray-500">Loading...</div>
+      ) : error ? (
+        <div className="text-red-600">{error}</div>
+      ) : (
+        <>
+          <table className="min-w-full text-xs md:text-sm border">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-2 py-1 border">User ID</th>
+                <th className="px-2 py-1 border">Nickname</th>
+                <th className="px-2 py-1 border">Date</th>
+                <th className="px-2 py-1 border">Orders</th>
+                <th className="px-2 py-1 border">Profit (€)</th>
+                <th className="px-2 py-1 border">Hours</th>
+                <th className="px-2 py-1 border">KM</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((s, i) => (
+                <tr key={i} className="even:bg-gray-50">
+                  <td className="px-2 py-1 border font-mono">{s.user_id}</td>
+                  <td className="px-2 py-1 border">{s.nickname || '-'}</td>
+                  <td className="px-2 py-1 border">{s.date}</td>
+                  <td className="px-2 py-1 border text-center">{s.orders_delivered}</td>
+                  <td className="px-2 py-1 border text-right">{Number(s.profit).toFixed(2)}</td>
+                  <td className="px-2 py-1 border text-center">{s.hours_worked}</td>
+                  <td className="px-2 py-1 border text-center">{s.km_driven}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <h4 className="mt-6 mb-2 text-left font-semibold">Totals per Driver</h4>
+          <table className="min-w-full text-xs md:text-sm border">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-2 py-1 border">User ID</th>
+                <th className="px-2 py-1 border">Nickname</th>
+                <th className="px-2 py-1 border">Orders</th>
+                <th className="px-2 py-1 border">Profit (€)</th>
+                <th className="px-2 py-1 border">Hours</th>
+                <th className="px-2 py-1 border">KM</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(userTotals).map(([uid, t]) => (
+                <tr key={uid} className="even:bg-gray-50">
+                  <td className="px-2 py-1 border font-mono">{uid}</td>
+                  <td className="px-2 py-1 border">{t.nickname || '-'}</td>
+                  <td className="px-2 py-1 border text-center">{t.orders}</td>
+                  <td className="px-2 py-1 border text-right">{t.profit.toFixed(2)}</td>
+                  <td className="px-2 py-1 border text-center">{t.hours}</td>
+                  <td className="px-2 py-1 border text-center">{t.km}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AdminChatPanel({ adminPassword }) {
+  // For demo, use adminPassword as user_id; in real app, use Telegram user info
+  const user_id = adminPassword || 'admin';
+  const nickname = 'Admin';
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const messagesEndRef = useRef(null);
+
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch('/api/admin-messages');
+      const data = await res.json();
+      setMessages(data.messages || []);
+    } catch {
+      setError('Error loading messages');
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin-messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id, nickname, message: input })
+      });
+      if (!res.ok) throw new Error('Failed to send');
+      setInput('');
+      fetchMessages();
+    } catch {
+      setError('Error sending message');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-96">
+      <div className="flex-1 overflow-y-auto border rounded-lg p-2 bg-gray-50 mb-2">
+        {messages.map(m => (
+          <div key={m.id} className="mb-2">
+            <span className="font-mono text-xs text-gray-500">{m.nickname || m.user_id}</span>
+            <span className="ml-2 text-xs text-gray-400">{new Date(m.created_at).toLocaleTimeString()}</span>
+            <div className="text-sm text-gray-800 bg-white rounded p-2 shadow-sm inline-block mt-1">{m.message}</div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+      <div className="flex gap-2">
+        <input
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+          placeholder="Type a message..."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
+          disabled={loading}
+        />
+        <button
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
+          onClick={handleSend}
+          disabled={loading || !input.trim()}
+        >Send</button>
+      </div>
+      {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
     </div>
   );
 } 

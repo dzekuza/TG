@@ -4,6 +4,12 @@ import path from 'path';
 import { query } from './db.js';
 import { v4 as uuidv4 } from 'uuid';
 
+// Helper to calculate total from items
+function calculateTotal(items) {
+  if (!Array.isArray(items)) return 0;
+  return items.reduce((sum, item) => sum + (Number(item.price || 0) * (Number(item.qty) || 1)), 0);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -18,9 +24,16 @@ export default async function handler(req, res) {
   }
 
   console.log('Incoming order request:', req.body);
-  const { meal, user, location, comment } = req.body;
+  const { meal, user, location, comment, items, total } = req.body;
   const order_id = `${user.id}_${Date.now()}`;
-  const items = Array.isArray(meal) ? meal : [{ name: meal, qty: 1 }];
+  let orderTotal = total;
+  let parsedItems = items;
+  if (!orderTotal) {
+    try {
+      parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+      orderTotal = calculateTotal(parsedItems);
+    } catch { orderTotal = 0; }
+  }
   const user_id = user.id;
   const status = 'pending';
 
@@ -47,9 +60,9 @@ Driver: Please press a button below to update order status or reply to this mess
   try {
     // Insert order into database
     await query(
-      `INSERT INTO orders (order_id, user_id, items, comment, location, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
-      [order_id, user_id, JSON.stringify(items), comment || '', JSON.stringify(location), status]
+      `INSERT INTO orders (order_id, user_id, items, comment, location, status, created_at, updated_at, total)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7)`,
+      [order_id, user_id, JSON.stringify(parsedItems), comment || '', JSON.stringify(location), status, orderTotal]
     );
 
     // Send order message to admin group with location request button

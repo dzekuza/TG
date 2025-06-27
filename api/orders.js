@@ -7,10 +7,12 @@ export default async function handler(req, res) {
 
   try {
     const { rows } = await query(
-      'SELECT order_id, items, comment, location, status, eta, driver_location, created_at, updated_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
+      'SELECT order_id, items, comment, location, status, eta, driver_location, created_at, updated_at, total FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
       [user_id]
     );
-    res.status(200).json({ orders: rows });
+    // Fallback for missing total
+    const orders = rows.map(o => ({ ...o, total: o.total !== undefined && o.total !== null ? o.total : '0.00' }));
+    res.status(200).json({ orders });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
