@@ -6,8 +6,8 @@ export default async function handler(req, res) {
 
   const { meal, user, location } = req.body;
 
-  const TELEGRAM_BOT_TOKEN = '7623464412:AAEKw1ZpqOO3JKMLTxrVGNiIsleUV2LRocs';
-  const ADMIN_CHAT_ID = '406266417';
+  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+  const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 
   const msg = `
 🍽️ New Food Order!

@@ -2,12 +2,15 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 app.use(bodyParser.json());
 
-const TELEGRAM_BOT_TOKEN = '7623464412:AAEKw1ZpqOO3JKMLTxrVGNiIsleUV2LRocs';
-const ADMIN_CHAT_ID = '406266417';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 
 app.post('/order', async (req, res) => {
   const { meal, user, location } = req.body;
