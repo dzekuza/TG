@@ -6,28 +6,35 @@ menuCards.forEach(card => {
   const meal = card.getAttribute('data-meal');
   const price = parseFloat(card.getAttribute('data-price'));
   const emoji = card.getAttribute('data-emoji');
+  // Defensive: Only add qty logic if controls exist
   const qtyBadge = card.querySelector('.qty-badge');
   const plusBtn = card.querySelector('.qty-btn.plus');
   const minusBtn = card.querySelector('.qty-btn.minus');
   const addBtn = card.querySelector('.add-btn');
 
-  plusBtn.addEventListener('click', () => {
-    cart[meal] = cart[meal] || { qty: 0, price, emoji };
-    cart[meal].qty++;
-    qtyBadge.textContent = cart[meal].qty;
-  });
-  minusBtn.addEventListener('click', () => {
-    if (cart[meal] && cart[meal].qty > 0) {
-      cart[meal].qty--;
+  if (plusBtn && qtyBadge) {
+    plusBtn.addEventListener('click', () => {
+      cart[meal] = cart[meal] || { qty: 0, price, emoji };
+      cart[meal].qty++;
       qtyBadge.textContent = cart[meal].qty;
-      if (cart[meal].qty === 0) delete cart[meal];
-    }
-  });
-  addBtn.addEventListener('click', () => {
-    cart[meal] = cart[meal] || { qty: 0, price, emoji };
-    cart[meal].qty++;
-    qtyBadge.textContent = cart[meal].qty;
-  });
+    });
+  }
+  if (minusBtn && qtyBadge) {
+    minusBtn.addEventListener('click', () => {
+      if (cart[meal] && cart[meal].qty > 0) {
+        cart[meal].qty--;
+        qtyBadge.textContent = cart[meal].qty;
+        if (cart[meal].qty === 0) delete cart[meal];
+      }
+    });
+  }
+  if (addBtn && qtyBadge) {
+    addBtn.addEventListener('click', () => {
+      cart[meal] = cart[meal] || { qty: 0, price, emoji };
+      cart[meal].qty++;
+      qtyBadge.textContent = cart[meal].qty;
+    });
+  }
 });
 
 // --- ORDER MODAL LOGIC ---
