@@ -219,9 +219,23 @@ navNewOrder.addEventListener('click', () => {
 navPastOrders.addEventListener('click', () => {
   navPastOrders.classList.add('active');
   navNewOrder.classList.remove('active');
-  // Open dedicated past orders page in a new tab
-  window.open('./past-orders.html', '_blank');
+  // Open past orders as a new tab (not a separate HTML page), using a popup window with the same app but only showing past orders section
+  const url = window.location.origin + window.location.pathname + '#past-orders';
+  window.open(url, '_blank', 'noopener,noreferrer,width=480,height=700');
 });
+
+// Show only past orders if #past-orders is in the URL
+if (window.location.hash === '#past-orders') {
+  document.querySelector('.menu-grid')?.remove();
+  document.querySelector('.footer')?.remove();
+  document.getElementById('order-section')?.remove();
+  document.getElementById('order-modal')?.remove();
+  document.getElementById('nav-new-order')?.remove();
+  document.querySelector('.title').textContent = 'Past Orders';
+  document.getElementById('past-orders-section').style.display = '';
+  document.querySelector('.main-nav').style.display = 'none';
+  renderPastOrders();
+}
 
 // --- ORDER STATUS UI/UPDATES ---
 function updateOrderStatusUI(status) {
@@ -242,7 +256,7 @@ function updateOrderStatusUI(status) {
   }
 }
 
-// --- PAST ORDERS (demo: fetch from localStorage) ---
+// --- PAST ORDERS (improved styling and icons) ---
 async function renderPastOrders() {
   const tgUser = Telegram.WebApp.initDataUnsafe.user;
   if (!tgUser) {
@@ -262,11 +276,16 @@ async function renderPastOrders() {
       try {
         const parsed = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
         items = Array.isArray(parsed)
-          ? parsed.map(i => `${i.emoji ? i.emoji + ' ' : ''}${i.name || i.meal || ''}${i.qty ? ' x' + i.qty : ''}`).join(', ')
+          ? parsed.map(i => `<span style='font-size:1.2em;'>${i.emoji ? i.emoji + ' ' : ''}</span><b>${i.name || i.meal || ''}</b>${i.qty ? ' <span class=\'qty-badge\'>' + i.qty + '</span>' : ''}`).join(' ')
           : order.items;
       } catch { items = order.items; }
-      let status = order.status ? `<div>Status: <b>${order.status}</b></div>` : '';
-      let eta = order.eta ? `<div>ETA: <b>${order.eta} min</b></div>` : '';
+      let statusIcon = '';
+      if (order.status === 'pending') statusIcon = '⏳';
+      else if (order.status === 'eta') statusIcon = '⏱️';
+      else if (order.status === 'arrived') statusIcon = '✅';
+      else if (order.status === 'driver_location') statusIcon = '🚗';
+      let status = order.status ? `<div>Status: <b>${statusIcon} ${order.status}</b></div>` : '';
+      let eta = order.eta ? `<div>⏱️ ETA: <b>${order.eta} min</b></div>` : '';
       let created = order.created_at ? `<div class='order-time'>${new Date(order.created_at).toLocaleString()}</div>` : '';
       return `<div class='order-history-item'>
         <div><b>Order ID:</b> ${order.order_id}</div>
