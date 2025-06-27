@@ -855,11 +855,12 @@ function AdminChatPanel({ adminPassword }) {
 function ProductManagementPanel({ mainAdminPassword }) {
   const [products, setProducts] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', price: '', image_url: '', available: true });
+  const [form, setForm] = useState({ name: '', price_1: '', price_2: '', price_3: '', image_url: '', available: true });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [stats, setStats] = useState([]);
   const [statsPeriod, setStatsPeriod] = useState('month');
+  const [imagePreview, setImagePreview] = useState('');
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -890,18 +891,33 @@ function ProductManagementPanel({ mainAdminPassword }) {
   };
   const handleEdit = p => {
     setEditing(p.id);
-    setForm({ name: p.name, price: p.price, image_url: p.image_url || '', available: p.available });
+    setForm({
+      name: p.name,
+      price_1: p.price_1 || '',
+      price_2: p.price_2 || '',
+      price_3: p.price_3 || '',
+      image_url: p.image_url || '',
+      available: p.available
+    });
+    setImagePreview(p.image_url || '');
   };
   const handleCancel = () => {
     setEditing(null);
-    setForm({ name: '', price: '', image_url: '', available: true });
+    setForm({ name: '', price_1: '', price_2: '', price_3: '', image_url: '', available: true });
+    setImagePreview('');
   };
   const handleSave = async () => {
     setLoading(true);
     setError('');
     try {
       const method = editing ? 'PUT' : 'POST';
-      const body = { ...form, price: Number(form.price), password: mainAdminPassword };
+      const body = {
+        ...form,
+        price_1: form.price_1 ? Number(form.price_1) : null,
+        price_2: form.price_2 ? Number(form.price_2) : null,
+        price_3: form.price_3 ? Number(form.price_3) : null,
+        password: mainAdminPassword
+      };
       if (editing) body.id = editing;
       const res = await fetch('/api/products', {
         method,
@@ -935,71 +951,127 @@ function ProductManagementPanel({ mainAdminPassword }) {
       setLoading(false);
     }
   };
+  // Image picker/upload
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImagePreview(URL.createObjectURL(file));
+    // Upload to imgur
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const res = await fetch('https://api.imgur.com/3/image', {
+        method: 'POST',
+        headers: { Authorization: `Client-ID ${import.meta.env.VITE_IMGUR_CLIENT_ID}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success && data.data.link) {
+        setForm(f => ({ ...f, image_url: data.data.link }));
+      } else {
+        setError('Image upload failed');
+      }
+    } catch {
+      setError('Image upload failed');
+    }
+  };
   return (
     <div>
-      <div className="mb-4 flex flex-col md:flex-row gap-4 items-end">
+      <div className="mb-4 flex flex-col gap-3">
         <input
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           name="name"
           placeholder="Product name"
           value={form.name}
           onChange={handleFormChange}
         />
-        <input
-          className="w-32 px-3 py-2 border border-gray-300 rounded-lg"
-          name="price"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="Price (€)"
-          value={form.price}
-          onChange={handleFormChange}
-        />
-        <input
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-          name="image_url"
-          placeholder="Image URL"
-          value={form.image_url}
-          onChange={handleFormChange}
-        />
+        <div className="flex gap-2">
+          <input
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            name="price_1"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Price for 1 piece (€)"
+            value={form.price_1}
+            onChange={handleFormChange}
+          />
+          <input
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            name="price_2"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Price for 2 pieces (€)"
+            value={form.price_2}
+            onChange={handleFormChange}
+          />
+          <input
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            name="price_3"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Price for 3 pieces (€)"
+            value={form.price_3}
+            onChange={handleFormChange}
+          />
+        </div>
+        <div className="flex gap-2 items-center">
+          <input
+            type="file"
+            accept="image/*"
+            className="block"
+            onChange={handleImageChange}
+          />
+          {imagePreview && <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />}
+        </div>
         <label className="flex items-center gap-1 text-xs">
           <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} /> Available
         </label>
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
-          onClick={handleSave}
-          disabled={loading || !form.name || !form.price}
-        >{editing ? 'Save' : 'Add'}</button>
-        {editing && <button className="ml-2 text-xs text-gray-500 hover:underline" onClick={handleCancel}>Cancel</button>}
+        <div className="flex gap-2">
+          <button
+            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
+            onClick={handleSave}
+            disabled={loading || !form.name || !form.price_1}
+          >{editing ? 'Save' : 'Add'}</button>
+          {editing && <button className="flex-1 text-xs text-gray-500 hover:underline" onClick={handleCancel}>Cancel</button>}
+        </div>
       </div>
       {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
-      <table className="min-w-full text-xs md:text-sm border mb-6">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="px-2 py-1 border">ID</th>
-            <th className="px-2 py-1 border">Name</th>
-            <th className="px-2 py-1 border">Price (€)</th>
-            <th className="px-2 py-1 border">Image</th>
-            <th className="px-2 py-1 border">Available</th>
-            <th className="px-2 py-1 border">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map(p => (
-            <tr key={p.id} className="even:bg-gray-50">
-              <td className="px-2 py-1 border text-center">{p.id}</td>
-              <td className="px-2 py-1 border">{p.name}</td>
-              <td className="px-2 py-1 border text-right">{Number(p.price).toFixed(2)}</td>
-              <td className="px-2 py-1 border text-center">{p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 object-cover rounded" />}</td>
-              <td className="px-2 py-1 border text-center">{p.available ? 'Yes' : 'No'}</td>
-              <td className="px-2 py-1 border text-center">
-                <button className="text-blue-600 hover:underline text-xs mr-2" onClick={() => handleEdit(p)}>Edit</button>
-                <button className="text-red-600 hover:underline text-xs" onClick={() => handleRemove(p.id)}>Remove</button>
-              </td>
+      <div className="overflow-x-auto mb-6">
+        <table className="min-w-full text-xs md:text-sm border shadow rounded-lg overflow-hidden">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="px-2 py-1 border">ID</th>
+              <th className="px-2 py-1 border">Name</th>
+              <th className="px-2 py-1 border">Price 1pc (€)</th>
+              <th className="px-2 py-1 border">Price 2pcs (€)</th>
+              <th className="px-2 py-1 border">Price 3pcs (€)</th>
+              <th className="px-2 py-1 border">Image</th>
+              <th className="px-2 py-1 border">Available</th>
+              <th className="px-2 py-1 border">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {products.map(p => (
+              <tr key={p.id} className="even:bg-gray-50 hover:bg-blue-50 transition-colors">
+                <td className="px-2 py-1 border text-center">{p.id}</td>
+                <td className="px-2 py-1 border font-semibold">{p.name}</td>
+                <td className="px-2 py-1 border text-right">{p.price_1 ? Number(p.price_1).toFixed(2) : '-'}</td>
+                <td className="px-2 py-1 border text-right">{p.price_2 ? Number(p.price_2).toFixed(2) : '-'}</td>
+                <td className="px-2 py-1 border text-right">{p.price_3 ? Number(p.price_3).toFixed(2) : '-'}</td>
+                <td className="px-2 py-1 border text-center">{p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 object-cover rounded" />}</td>
+                <td className="px-2 py-1 border text-center">{p.available ? 'Yes' : 'No'}</td>
+                <td className="px-2 py-1 border text-center">
+                  <button className="text-blue-600 hover:underline text-xs mr-2" onClick={() => handleEdit(p)}>Edit</button>
+                  <button className="text-red-600 hover:underline text-xs" onClick={() => handleRemove(p.id)}>Remove</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <div className="mb-2 flex gap-2 items-center">
         <span className="text-xs">Stats period:</span>
         <select className="border rounded px-2 py-1 text-xs" value={statsPeriod} onChange={e => setStatsPeriod(e.target.value)}>

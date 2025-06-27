@@ -46,10 +46,13 @@ CREATE TABLE IF NOT EXISTS admin_messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+DROP TABLE IF EXISTS products;
 CREATE TABLE IF NOT EXISTS products (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
-  price NUMERIC NOT NULL,
+  price_1 NUMERIC NOT NULL,
+  price_2 NUMERIC,
+  price_3 NUMERIC,
   image_url TEXT,
   available BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),

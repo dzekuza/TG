@@ -14,21 +14,21 @@ export default async function handler(req, res) {
     return;
   }
   if (req.method === 'POST') {
-    const { name, price, image_url, available } = req.body;
-    if (!name || price === undefined) return res.status(400).json({ error: 'Missing name or price' });
+    const { name, price_1, price_2, price_3, image_url, available } = req.body;
+    if (!name || price_1 === undefined) return res.status(400).json({ error: 'Missing name or price_1' });
     const { rows } = await query(
-      'INSERT INTO products (name, price, image_url, available) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, price, image_url || null, available !== undefined ? available : true]
+      'INSERT INTO products (name, price_1, price_2, price_3, image_url, available) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [name, price_1, price_2, price_3, image_url || null, available !== undefined ? available : true]
     );
     res.status(200).json({ product: rows[0] });
     return;
   }
   if (req.method === 'PUT') {
-    const { id, name, price, image_url, available } = req.body;
+    const { id, name, price_1, price_2, price_3, image_url, available } = req.body;
     if (!id) return res.status(400).json({ error: 'Missing id' });
     const { rows } = await query(
-      'UPDATE products SET name=$1, price=$2, image_url=$3, available=$4, updated_at=NOW() WHERE id=$5 RETURNING *',
-      [name, price, image_url || null, available !== undefined ? available : true, id]
+      'UPDATE products SET name=$1, price_1=$2, price_2=$3, price_3=$4, image_url=$5, available=$6, updated_at=NOW() WHERE id=$7 RETURNING *',
+      [name, price_1, price_2, price_3, image_url || null, available !== undefined ? available : true, id]
     );
     res.status(200).json({ product: rows[0] });
     return;
