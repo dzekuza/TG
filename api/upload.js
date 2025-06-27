@@ -21,8 +21,12 @@ export default async function handler(req, res) {
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(500).json({ error: 'Error parsing form data' });
 
-    // Support any field name, fallback to first file
+    // Log files object for debugging
+    console.log('Formidable files:', files);
+
+    // Support any field name, fallback to first file, and handle array
     let file = files.file || Object.values(files)[0];
+    if (Array.isArray(file)) file = file[0];
     if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
     let fileData;
@@ -31,6 +35,7 @@ export default async function handler(req, res) {
     } else if (file.buffer) {
       fileData = file.buffer;
     } else {
+      console.error('File object:', file);
       return res.status(400).json({ error: 'File data not found' });
     }
 
