@@ -169,16 +169,13 @@ export function PastOrders({ orders = [] }) {
                     {statusConfig.icon}
                     <span className="text-xs">{statusConfig.label}</span>
                   </div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-gray-900 text-sm">#{order.order_id}</span>
-                  </div>
                   <div className="flex items-center gap-1 text-gray-500 text-sm">
                     <Calendar className="w-3 h-3" />
                     <span>{formatDate(order.created_at)}</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-gray-900">${order.total || '0.00'}</div>
+                  <div className="text-gray-900">€{order.total || '0.00'}</div>
                   <div className="text-gray-500 text-sm">{items.split(',').length} items</div>
                 </div>
               </div>

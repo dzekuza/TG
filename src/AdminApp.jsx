@@ -217,9 +217,6 @@ export default function AdminApp() {
                         {statusConfig.icon}
                         <span className="text-sm font-medium">{statusConfig.label}</span>
                       </div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-lg font-semibold text-gray-900">#{order.order_id}</span>
-                      </div>
                       <div className="flex items-center gap-1 text-gray-500 text-sm">
                         <Calendar className="w-4 h-4" />
                         <span>{formatDate(order.created_at)}</span>
@@ -234,6 +231,13 @@ export default function AdminApp() {
                     <h3 className="font-medium text-gray-900 mb-2">Order Items:</h3>
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-gray-700">{items}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <h3 className="font-medium text-gray-900 mb-2">Total:</h3>
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                      <span className="text-blue-800 font-semibold">€{order.total || '0.00'}</span>
                     </div>
                   </div>
 
