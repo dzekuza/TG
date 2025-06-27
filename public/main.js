@@ -215,13 +215,21 @@ navNewOrder.addEventListener('click', () => {
   navPastOrders.classList.remove('active');
   orderSection.style.display = '';
   pastOrdersSection.style.display = 'none';
+  document.querySelector('.menu-grid')?.classList.remove('hidden');
+  document.querySelector('.footer')?.classList.remove('hidden');
+  document.getElementById('order-modal')?.classList.remove('hidden');
 });
 navPastOrders.addEventListener('click', () => {
   navPastOrders.classList.add('active');
   navNewOrder.classList.remove('active');
-  // Open past orders as a new tab (not a separate HTML page), using a popup window with the same app but only showing past orders section
-  const url = window.location.origin + window.location.pathname + '#past-orders';
-  window.open(url, '_blank', 'noopener,noreferrer,width=480,height=700');
+  // Instead of window.open, show only past orders section in the same tab
+  orderSection.style.display = 'none';
+  pastOrdersSection.style.display = '';
+  renderPastOrders();
+  // Hide menu grid, modal, and footer for a focused view
+  document.querySelector('.menu-grid')?.classList.add('hidden');
+  document.querySelector('.footer')?.classList.add('hidden');
+  document.getElementById('order-modal')?.classList.add('hidden');
 });
 
 // Show only past orders if #past-orders is in the URL
