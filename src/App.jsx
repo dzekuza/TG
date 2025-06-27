@@ -4,58 +4,29 @@ import { OrderProcessing } from './components/OrderProcessing';
 import { PastOrders } from './components/PastOrders';
 import { ShoppingBag, Package, History } from 'lucide-react';
 
-// Product data - you can move this to a separate file or fetch from API
-const products = [
-  {
-    id: 1,
-    name: 'Classic Burger',
-    price: 12.99,
-    emoji: '🍔',
-    description: 'Juicy beef patty with lettuce, tomato, and cheese'
-  },
-  {
-    id: 2,
-    name: 'Pepperoni Pizza',
-    price: 18.99,
-    emoji: '🍕',
-    description: 'Classic pizza with pepperoni and mozzarella'
-  },
-  {
-    id: 3,
-    name: 'Caesar Salad',
-    price: 9.99,
-    emoji: '🥗',
-    description: 'Fresh romaine lettuce with Caesar dressing'
-  },
-  {
-    id: 4,
-    name: 'Chicken Tacos',
-    price: 14.99,
-    emoji: '🌮',
-    description: 'Grilled chicken with fresh vegetables and salsa'
-  },
-  {
-    id: 5,
-    name: 'French Fries',
-    price: 4.99,
-    emoji: '🍟',
-    description: 'Crispy golden fries with sea salt'
-  },
-  {
-    id: 6,
-    name: 'Chocolate Cake',
-    price: 8.99,
-    emoji: '🍰',
-    description: 'Rich chocolate cake with cream filling'
-  }
-];
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('products');
   const [cart, setCart] = useState({});
   const [pastOrders, setPastOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const [products, setProducts] = useState([]);
+
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        if (data.products) {
+          setProducts(data.products.filter(p => p.available));
+        }
+      } catch (e) {
+        setProducts([]);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   // Initialize Telegram WebApp
   useEffect(() => {
@@ -201,15 +172,11 @@ export default function App() {
                 : 'text-gray-600 hover:text-gray-800'
             }`}
           >
-            <div className="relative">
-              <ShoppingBag className="w-5 h-5" />
-              {totalItems > 0 && (
-                <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {totalItems}
-                </div>
-              )}
-            </div>
+            <ShoppingBag className="w-5 h-5" />
             <span className="text-xs">Cart</span>
+            {totalItems > 0 && (
+              <span className="absolute top-1 right-3 bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs font-bold">{totalItems}</span>
+            )}
           </button>
 
           <button
