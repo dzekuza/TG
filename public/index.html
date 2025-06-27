@@ -4,104 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Durger King</title>
-  <link rel="stylesheet" href="./style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script type="module" crossorigin src="/assets/main-eb458aa2.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/index-c241957b.js">
+  <link rel="stylesheet" href="/assets/index-c6267735.css">
+  <script type="module" crossorigin src="/assets/modulepreload-polyfill-3cfb730f.js"></script>
 </head>
 <body>
-  <div class="app-container">
-    <div class="header">
-      <img src="https://img.icons8.com/color/96/000000/hamburger.png" class="logo" alt="logo" />
-      <span class="title">Durger King</span>
-    </div>
-    <div class="menu-grid">
-      <div class="menu-card" data-meal="Cake" data-price="1" data-emoji="🍰">
-        <div class="menu-img">🍰</div>
-        <div class="menu-title">Cake <span class="new">NEW</span></div>
-        <div class="menu-price">⭐ 1</div>
-        <div class="qty-controls">
-          <button class="qty-btn minus">−</button>
-          <span class="qty-badge">0</span>
-          <button class="qty-btn plus">+</button>
-        </div>
-        <button class="add-btn" data-action="add">ADD</button>
-      </div>
-      <div class="menu-card" data-meal="Burger" data-price="4.99" data-emoji="🍔">
-        <div class="menu-img">🍔</div>
-        <div class="menu-title">Burger</div>
-        <div class="menu-price">$4.99</div>
-        <div class="qty-controls">
-          <button class="qty-btn minus">−</button>
-          <span class="qty-badge">0</span>
-          <button class="qty-btn plus">+</button>
-        </div>
-        <button class="add-btn" data-action="add">ADD</button>
-      </div>
-      <div class="menu-card" data-meal="Fries" data-price="1.49" data-emoji="🍟">
-        <div class="menu-img">🍟</div>
-        <div class="menu-title">Fries</div>
-        <div class="menu-price">$1.49</div>
-        <div class="qty-controls">
-          <button class="qty-btn minus">−</button>
-          <span class="qty-badge">0</span>
-          <button class="qty-btn plus">+</button>
-        </div>
-        <button class="add-btn" data-action="add">ADD</button>
-      </div>
-      <div class="menu-card" data-meal="Pizza" data-price="7.99" data-emoji="🍕">
-        <div class="menu-img">🍕</div>
-        <div class="menu-title">Pizza</div>
-        <div class="menu-price">$7.99</div>
-        <div class="qty-controls">
-          <button class="qty-btn minus">−</button>
-          <span class="qty-badge">0</span>
-          <button class="qty-btn plus">+</button>
-        </div>
-        <button class="add-btn" data-action="add">ADD</button>
-      </div>
-    </div>
-    <div class="footer">
-      <button id="view-order-btn" class="order-btn">VIEW ORDER</button>
-    </div>
-    <div id="order-status-ui"></div>
-  </div>
-  <!-- Order Modal: Multistep -->
-  <div id="order-modal" class="order-modal" style="display:none;">
-    <div class="order-modal-content">
-      <div class="order-modal-header">
-        <span class="order-modal-title">YOUR ORDER</span>
-        <button id="close-modal" class="close-modal">×</button>
-      </div>
-      <div id="order-step-1" class="order-step active">
-        <div id="order-summary-step"></div>
-        <div class="order-btn-group">
-          <button id="next-to-comment" class="order-btn next">Next</button>
-        </div>
-      </div>
-      <div id="order-step-2" class="order-step">
-        <textarea id="order-comment" class="order-comment" placeholder="Add comment..."></textarea>
-        <div class="order-btn-group">
-          <button id="back-to-summary" class="order-btn back">Back</button>
-          <button id="next-to-location" class="order-btn next">Next</button>
-        </div>
-      </div>
-      <div id="order-step-3" class="order-step">
-        <div class="location-row">
-          <button id="get-location-btn" class="order-btn next">Add Location</button>
-          <span id="location-status-modal" class="location-status"></span>
-        </div>
-        <div class="order-btn-group">
-          <button id="back-to-comment" class="order-btn back">Back</button>
-          <button id="submit-order-btn" class="order-btn submit">Send Order</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <nav class="main-nav">
-    <button id="nav-new-order" class="nav-btn active">New Order</button>
-    <button id="nav-past-orders" class="nav-btn">Past Orders</button>
-  </nav>
-  <div id="order-section" class="order-section"></div>
-  <div id="past-orders-section" class="order-section" style="display:none;"></div>
-  <script type="module" src="./main.js"></script>
+  <div id="root"></div>
+  
 </body>
-</html>
+</html> 
