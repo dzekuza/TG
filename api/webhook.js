@@ -37,24 +37,32 @@ export default async function handler(req, res) {
       const order = await getOrder(orderId);
       if (order) {
         await updateOrderStatus(orderId, { status: 'eta', eta: eta.toString() });
-        // Notify driver
-        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: process.env.ADMIN_CHAT_ID,
-            text: `ETA calculated: ${eta} min. Press 'Arrived' when you reach the customer.`
-          })
-        });
-        // Notify customer
-        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: order.user_id,
-            text: `🚗 Your order is on the way! Estimated arrival: ${eta} min.`
-          })
-        });
+        // After updating order status in webhook, also update the database with the new status and ETA
+        if (order) {
+          // Update order in database with new status and ETA
+          await query(
+            'UPDATE orders SET status = $1, eta = $2, updated_at = NOW() WHERE order_id = $3',
+            ['eta', eta.toString(), orderId]
+          );
+          // Notify driver
+          await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: process.env.ADMIN_CHAT_ID,
+              text: `ETA calculated: ${eta} min. Press 'Arrived' when you reach the customer.`
+            })
+          });
+          // Notify customer
+          await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: order.user_id,
+              text: `🚗 Your order is on the way! Estimated arrival: ${eta} min.`
+            })
+          });
+        }
       }
     } else if (data.startsWith('arrived_')) {
       const [, orderId] = data.split('_');

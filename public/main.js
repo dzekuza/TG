@@ -219,9 +219,8 @@ navNewOrder.addEventListener('click', () => {
 navPastOrders.addEventListener('click', () => {
   navPastOrders.classList.add('active');
   navNewOrder.classList.remove('active');
-  orderSection.style.display = 'none';
-  pastOrdersSection.style.display = '';
-  renderPastOrders();
+  // Open dedicated past orders page in a new tab
+  window.open('./past-orders.html', '_blank');
 });
 
 // --- ORDER STATUS UI/UPDATES ---
