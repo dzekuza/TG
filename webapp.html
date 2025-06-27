@@ -1,34 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Location Share</title>
+  <meta charset="UTF-8">
+  <title>Order Food</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f9f9f9;
+      padding: 20px;
+    }
+    select, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
-  <h2>📍 Share Your Location</h2>
-  <button onclick="shareLocation()">Send Location</button>
 
-  <script>
-    function shareLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-          const data = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            type: Telegram.WebApp.initDataUnsafe?.user?.is_bot ? "driver" : "customer",
-            user_id: Telegram.WebApp.initDataUnsafe.user.id
-          };
+<h2>🚀 Order Your Meal</h2>
 
-          fetch("https://n8n.srv824584.hstgr.cloud/webhook/webapp-location", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-          }).then(() => Telegram.WebApp.close());
-        });
-      } else {
-        alert("Geolocation not supported");
-      }
+<label for="product">Choose product:</label>
+<select id="product">
+  <option value="Pizza">Pizza</option>
+  <option value="Burger">Burger</option>
+  <option value="Sushi">Sushi</option>
+</select>
+
+<button onclick="submitOrder()">📍 Share Location & Order</button>
+
+<script>
+  async function submitOrder() {
+    if (!navigator.geolocation) {
+      alert('Geolocation not supported.');
+      return;
     }
-  </script>
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const product = document.getElementById('product').value;
+
+      const tg = window.Telegram.WebApp;
+      const payload = {
+        chat_id: tg.initDataUnsafe.user.id,
+        customer_username: tg.initDataUnsafe.user.username,
+        product,
+        lat,
+        lng,
+        pickup_address: "User shared location",
+        destination_address: "N/A" // Optional, or replace with form input
+      };
+
+      const res = await fetch('https://n8n.srv824584.hstgr.cloud/webhook/order-food', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        tg.close(); // or show a success message
+      } else {
+        alert('Order failed!');
+      }
+    }, () => {
+      alert('Could not get location.');
+    });
+  }
+</script>
+
 </body>
 </html>
