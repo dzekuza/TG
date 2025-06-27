@@ -1,18 +1,96 @@
-<!-- index.html -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Durger King</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
 <body>
-  <h1>Select Your Meal</h1>
-  <select id="meal">
-    <option value="Burger">Burger 🍔</option>
-    <option value="Pizza">Pizza 🍕</option>
-    <option value="Sushi">Sushi 🍣</option>
-  </select>
-
-  <button id="get-location">📍 Get My Location</button>
-  <p id="location-status"></p>
-
-  <button id="submit-order">✅ Submit Order</button>
-
+  <div class="app-container">
+    <div class="header">
+      <img src="https://img.icons8.com/color/96/000000/hamburger.png" class="logo" alt="logo" />
+      <span class="title">Durger King</span>
+    </div>
+    <div class="menu-grid">
+      <div class="menu-card" data-meal="Cake">
+        <div class="menu-img">🍰</div>
+        <div class="menu-title">Cake <span class="new">NEW</span></div>
+        <div class="menu-price">⭐ 1</div>
+        <button class="buy-btn" data-action="buy">BUY</button>
+      </div>
+      <div class="menu-card" data-meal="Burger">
+        <div class="menu-img">🍔</div>
+        <div class="menu-title">Burger</div>
+        <div class="menu-price">$4.99</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Fries">
+        <div class="menu-img">🍟</div>
+        <div class="menu-title">Fries</div>
+        <div class="menu-price">$1.49</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Hotdog">
+        <div class="menu-img">🌭</div>
+        <div class="menu-title">Hotdog</div>
+        <div class="menu-price">$3.49</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Taco">
+        <div class="menu-img">🌮</div>
+        <div class="menu-title">Taco</div>
+        <div class="menu-price">$3.99</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Pizza">
+        <div class="menu-img">🍕</div>
+        <div class="menu-title">Pizza</div>
+        <div class="menu-price">$7.99</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Donut">
+        <div class="menu-img">🍩</div>
+        <div class="menu-title">Donut</div>
+        <div class="menu-price">$1.49</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Popcorn">
+        <div class="menu-img">🍿</div>
+        <div class="menu-title">Popcorn</div>
+        <div class="menu-price">$1.99</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Coke">
+        <div class="menu-img">🥤</div>
+        <div class="menu-title">Coke</div>
+        <div class="menu-price">$1.49</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Icecream">
+        <div class="menu-img">🍦</div>
+        <div class="menu-title">Icecream</div>
+        <div class="menu-price">$5.99</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Cookie">
+        <div class="menu-img">🍪</div>
+        <div class="menu-title">Cookie</div>
+        <div class="menu-price">$3.99</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+      <div class="menu-card" data-meal="Flan">
+        <div class="menu-img">🍮</div>
+        <div class="menu-title">Flan</div>
+        <div class="menu-price">$7.99</div>
+        <button class="add-btn" data-action="add">ADD</button>
+      </div>
+    </div>
+    <div class="footer">
+      <button id="order-btn" class="order-btn">Order Food</button>
+    </div>
+  </div>
   <script type="module" src="./main.js"></script>
 </body>
+</html>

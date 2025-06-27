@@ -17,24 +17,43 @@ document.getElementById('get-location').addEventListener('click', () => {
   }
 });
 
-document.getElementById('submit-order').addEventListener('click', async () => {
-  const meal = document.getElementById('meal').value;
-  const tgUser = Telegram.WebApp.initDataUnsafe.user;
+// Modern menu logic for selecting items and ordering
+let selectedMeal = null;
+const menuCards = document.querySelectorAll('.menu-card');
+menuCards.forEach(card => {
+  card.querySelector('button').addEventListener('click', () => {
+    menuCards.forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedMeal = card.getAttribute('data-meal');
+  });
+});
 
-  if (!userCoords) {
-    alert('Please share your location first.');
+document.getElementById('order-btn').addEventListener('click', async () => {
+  if (!selectedMeal) {
+    alert('Please select a meal!');
     return;
   }
-
-  await fetch("https://tg-gamma-ten.vercel.app/api/order", {
-    method: "POST",
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      meal,
-      user: tgUser,
-      location: userCoords
-    })
+  if (!navigator.geolocation) {
+    alert('Geolocation not supported');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    const userCoords = {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude
+    };
+    const tgUser = Telegram.WebApp.initDataUnsafe.user;
+    await fetch("https://tg-gamma-ten.vercel.app/api/order", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        meal: selectedMeal,
+        user: tgUser,
+        location: userCoords
+      })
+    });
+    Telegram.WebApp.close();
+  }, () => {
+    alert('Unable to fetch location');
   });
-
-  Telegram.WebApp.close(); // Optional: auto-close after ordering
 });
