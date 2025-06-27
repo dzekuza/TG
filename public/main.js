@@ -88,29 +88,24 @@ nextToLocationBtn.addEventListener('click', () => showStep(2));
 backToCommentBtn.addEventListener('click', () => showStep(1));
 
 getLocationBtn.addEventListener('click', async () => {
-  // Use Telegram WebApp geolocation if available
-  if (window.Telegram && Telegram.WebApp && typeof Telegram.WebApp.requestGeoLocation === 'function') {
-    Telegram.WebApp.requestGeoLocation((location) => {
-      if (location && location.latitude && location.longitude) {
-        userCoords = { lat: location.latitude, lng: location.longitude };
-        locationStatusModal.textContent = `📍 ${userCoords.lat}, ${userCoords.lng}`;
-      } else {
-        alert('Unable to fetch location from Telegram. Please check your Telegram app permissions.');
-      }
-    });
-  } else if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((position) => {
-      userCoords = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      };
-      locationStatusModal.textContent = `📍 ${userCoords.lat}, ${userCoords.lng}`;
-    }, () => {
-      alert('Unable to fetch location from browser. Please allow location access.');
-    });
-  } else {
-    alert('Geolocation is not supported in this environment. Please use the Telegram app.');
+  // If Telegram geolocation is not available, redirect to a map page or allow manual entry
+  const mapUrl = 'https://www.google.com/maps'; // Or use a custom page for copying location
+  window.open(mapUrl, '_blank');
+  // Show manual entry field for location
+  let manualField = document.getElementById('manual-location-field');
+  if (!manualField) {
+    manualField = document.createElement('input');
+    manualField.type = 'text';
+    manualField.id = 'manual-location-field';
+    manualField.placeholder = 'Paste your location (lat,lng or address)';
+    manualField.className = 'order-comment';
+    locationStatusModal.parentNode.insertBefore(manualField, locationStatusModal.nextSibling);
   }
+  manualField.style.display = 'block';
+  manualField.addEventListener('input', () => {
+    userCoords = manualField.value;
+    locationStatusModal.textContent = userCoords ? `📍 ${userCoords}` : '';
+  });
 });
 
 let currentOrderId = null;
@@ -121,7 +116,12 @@ submitOrderBtn.addEventListener('click', async () => {
     alert('Please add at least one item.');
     return;
   }
-  if (!userCoords) {
+  // Accept manual location as string if geolocation is not available
+  let locationToSend = userCoords;
+  if (typeof userCoords === 'string') {
+    locationToSend = { manual: userCoords };
+  }
+  if (!locationToSend || (typeof locationToSend === 'object' && !locationToSend.lat)) {
     alert('Please add your location.');
     return;
   }
@@ -133,7 +133,7 @@ submitOrderBtn.addEventListener('click', async () => {
     body: JSON.stringify({
       meal: Object.entries(cart).map(([meal, { qty }]) => `${meal} x${qty}`).join(', '),
       user: tgUser,
-      location: userCoords,
+      location: locationToSend,
       comment
     })
   });

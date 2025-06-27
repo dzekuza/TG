@@ -1,4 +1,15 @@
-body {
+#manual-location-field {
+  margin-top: 12px;
+  border-radius: 8px;
+  border: none;
+  padding: 10px;
+  font-size: 1rem;
+  background: #2c313a;
+  color: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+}body {
   background: #23272f;
   color: #fff;
   font-family: 'Segoe UI', Arial, sans-serif;
