@@ -89,13 +89,13 @@ backToCommentBtn.addEventListener('click', () => showStep(1));
 
 getLocationBtn.addEventListener('click', async () => {
   // Use Telegram WebApp geolocation if available
-  if (window.Telegram && Telegram.WebApp && Telegram.WebApp.requestGeoLocation) {
+  if (window.Telegram && Telegram.WebApp && typeof Telegram.WebApp.requestGeoLocation === 'function') {
     Telegram.WebApp.requestGeoLocation((location) => {
       if (location && location.latitude && location.longitude) {
         userCoords = { lat: location.latitude, lng: location.longitude };
         locationStatusModal.textContent = `📍 ${userCoords.lat}, ${userCoords.lng}`;
       } else {
-        alert('Unable to fetch location from Telegram.');
+        alert('Unable to fetch location from Telegram. Please check your Telegram app permissions.');
       }
     });
   } else if (navigator.geolocation) {
@@ -106,8 +106,10 @@ getLocationBtn.addEventListener('click', async () => {
       };
       locationStatusModal.textContent = `📍 ${userCoords.lat}, ${userCoords.lng}`;
     }, () => {
-      alert('Unable to fetch location');
+      alert('Unable to fetch location from browser. Please allow location access.');
     });
+  } else {
+    alert('Geolocation is not supported in this environment. Please use the Telegram app.');
   }
 });
 
