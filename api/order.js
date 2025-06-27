@@ -19,13 +19,26 @@ export default async function handler(req, res) {
 📍 Location: https://www.google.com/maps?q=${location.lat},${location.lng}
   `;
 
+  // Inline keyboard to request location from admin
+  const replyMarkup = {
+    inline_keyboard: [[
+      {
+        text: 'Share Your Location',
+        request_location: true,
+        callback_data: `share_location_${user?.id}`
+      }
+    ]]
+  };
+
   try {
+    // Send order message to admin group with location request button
     const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: ADMIN_CHAT_ID,
-        text: msg
+        text: msg + '\n\nAdmin: Please share your location to update the customer.',
+        reply_markup: replyMarkup
       })
     });
     const tgData = await tgRes.json();
