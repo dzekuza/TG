@@ -70,6 +70,13 @@ export default function AdminApp() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState({});
+  const [activeTab, setActiveTab] = useState('pending');
+  const statusTabs = [
+    { key: 'pending', label: 'Pending' },
+    { key: 'arriving', label: 'On the way' },
+    { key: 'arrived', label: 'Delivered' },
+    { key: 'cancelled', label: 'Cancelled' }
+  ];
 
   useEffect(() => {
     loadOrders();
@@ -155,6 +162,19 @@ export default function AdminApp() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Status Tabs */}
+        <div className="flex gap-2 mb-6">
+          {statusTabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2 rounded-lg font-medium border transition-colors ${activeTab === tab.key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         {orders.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📦</div>
@@ -162,14 +182,25 @@ export default function AdminApp() {
             <p className="text-gray-600">Orders will appear here when customers place them</p>
           </div>
         ) : (
-          <div className="grid gap-6">
-            {orders.map((order) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {orders.filter(order => {
+              if (activeTab === 'pending') return order.status === 'pending' || order.status === 'preparing';
+              if (activeTab === 'arriving') return order.status === 'arriving' || order.status === 'on-the-way';
+              if (activeTab === 'arrived') return order.status === 'arrived' || order.status === 'delivered';
+              if (activeTab === 'cancelled') return order.status === 'cancelled';
+              return true;
+            }).map((order) => {
               const statusConfig = getStatusConfig(order.status);
               let items = '';
               try {
                 const parsed = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
                 items = Array.isArray(parsed)
-                  ? parsed.map(i => `${i.emoji ? i.emoji + ' ' : ''}${i.name || i.meal || ''}${i.qty ? ' x' + i.qty : ''}`).join(', ')
+                  ? parsed.map(i => {
+                      const name = i.name || i.meal || '';
+                      const qty = i.qty ? ` x${i.qty}` : '';
+                      // Avoid duplicate 'x' if already present
+                      return `${i.emoji ? i.emoji + ' ' : ''}${name}${name.includes('x') ? '' : qty}`;
+                    }).join('\n')
                   : order.items;
               } catch { 
                 items = order.items; 
@@ -215,10 +246,58 @@ export default function AdminApp() {
                   {order.location && (
                     <div className="mb-4">
                       <h3 className="font-medium text-gray-900 mb-2">Location:</h3>
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <MapPin className="w-4 h-4" />
-                        <span>{order.location}</span>
-                      </div>
+                      {(() => {
+                        let loc = order.location;
+                        try {
+                          if (typeof loc === 'string') loc = JSON.parse(loc);
+                        } catch {}
+                        const link = loc?.manual || loc;
+                        const isGoogleMaps = typeof link === 'string' && link.includes('google.com/maps');
+                        let lat = null, lng = null;
+                        if (isGoogleMaps) {
+                          // Try to extract lat/lng from the link
+                          const match = link.match(/@([\d.\-]+),([\d.\-]+)/);
+                          if (match) {
+                            lat = match[1];
+                            lng = match[2];
+                          }
+                        }
+                        return isGoogleMaps && (lat && lng) ? (
+                          <div className="flex flex-col gap-2">
+                            <iframe
+                              title="Google Map"
+                              width="100%"
+                              height="200"
+                              className="rounded-lg border"
+                              src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
+                              allowFullScreen
+                            ></iframe>
+                            <div className="flex gap-2">
+                              <a
+                                href={`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-blue-200"
+                              >
+                                Open in Waze
+                              </a>
+                              <a
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-gray-200"
+                              >
+                                Open in Google Maps
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <MapPin className="w-4 h-4" />
+                            <span>{typeof loc === 'string' ? loc : JSON.stringify(loc)}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
