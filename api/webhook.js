@@ -1,20 +1,17 @@
 // api/webhook.js
-import fs from 'fs';
-import path from 'path';
+import db from './db.js';
 
-const ORDERS_FILE = path.join(process.cwd(), 'orders.json');
-function saveOrderStatus(orderId, status) {
-  let orders = {};
-  if (fs.existsSync(ORDERS_FILE)) {
-    orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
-  }
-  orders[orderId] = status;
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders));
+async function updateOrderStatus(orderId, fields) {
+  const setClause = Object.keys(fields).map((k, i) => `${k} = $${i + 2}`).join(', ');
+  const values = [orderId, ...Object.values(fields)];
+  await db.query(
+    `UPDATE orders SET ${setClause}, updated_at = NOW() WHERE order_id = $1`,
+    values
+  );
 }
-function getOrderStatus(orderId) {
-  if (!fs.existsSync(ORDERS_FILE)) return null;
-  const orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
-  return orders[orderId] || null;
+async function getOrder(orderId) {
+  const { rows } = await db.query('SELECT * FROM orders WHERE order_id = $1', [orderId]);
+  return rows[0] || null;
 }
 
 export default async function handler(req, res) {
@@ -37,11 +34,9 @@ export default async function handler(req, res) {
       const distance = R * c;
       let eta = Math.round((distance/40)*60); // minutes
       if (eta < 1) eta = 1;
-      const order = getOrderStatus(orderId);
+      const order = await getOrder(orderId);
       if (order) {
-        order.status = 'eta';
-        order.eta = eta;
-        saveOrderStatus(orderId, order);
+        await updateOrderStatus(orderId, { status: 'eta', eta: eta.toString() });
         // Notify driver
         await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
@@ -56,17 +51,16 @@ export default async function handler(req, res) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: order.customerChatId,
+            chat_id: order.user_id,
             text: `🚗 Your order is on the way! Estimated arrival: ${eta} min.`
           })
         });
       }
     } else if (data.startsWith('arrived_')) {
       const [, orderId] = data.split('_');
-      const order = getOrderStatus(orderId);
+      const order = await getOrder(orderId);
       if (order) {
-        order.status = 'arrived';
-        saveOrderStatus(orderId, order);
+        await updateOrderStatus(orderId, { status: 'arrived' });
         // Notify driver
         await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
@@ -81,7 +75,7 @@ export default async function handler(req, res) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: order.customerChatId,
+            chat_id: order.user_id,
             text: `✅ Your order has arrived!`
           })
         });
@@ -92,54 +86,69 @@ export default async function handler(req, res) {
   }
   // Handle location message from driver
   if (body.message && body.message.location && body.message.chat && body.message.chat.id == process.env.ADMIN_CHAT_ID) {
-    // If the driver replies to a specific order notification, use reply_to_message to find the order
-    let orders = {};
-    if (fs.existsSync(ORDERS_FILE)) {
-      orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
-    }
+    // Find orderId by reply_to_message or fallback to latest pending/eta order
     let foundOrderId = null;
-    // Try to match by reply_to_message (if driver replies to the order notification)
     if (body.message.reply_to_message && body.message.reply_to_message.text) {
-      // Find orderId in the notification text (assume orderId is included in the admin notification)
       const text = body.message.reply_to_message.text;
       const match = text.match(/Order ID: (\w+_\d+)/);
       if (match) {
         foundOrderId = match[1];
       }
     }
-    // Fallback: find latest pending/eta order
     if (!foundOrderId) {
-      const orderIds = Object.keys(orders).reverse();
-      for (const oid of orderIds) {
-        if (orders[oid].status === 'pending' || orders[oid].status === 'eta') {
-          foundOrderId = oid;
-          break;
-        }
-      }
+      // Fallback: find latest pending/eta order
+      const { rows } = await db.query(
+        `SELECT order_id FROM orders WHERE status IN ('pending','eta') ORDER BY created_at DESC LIMIT 1`
+      );
+      if (rows.length) foundOrderId = rows[0].order_id;
     }
     if (foundOrderId) {
-      const order = orders[foundOrderId];
-      order.driverLocation = body.message.location;
-      order.status = 'driver_location';
-      saveOrderStatus(foundOrderId, order);
-      // Notify customer with driver location (send Google Maps link)
-      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: order.customerChatId,
-          text: `🚗 Driver shared location: https://www.google.com/maps?q=${body.message.location.latitude},${body.message.location.longitude}`
-        })
-      });
-      // Confirm to driver
-      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: process.env.ADMIN_CHAT_ID,
-          text: `Location shared with customer for Order ID: ${foundOrderId}.`
-        })
-      });
+      // Update driver location in DB
+      await updateOrderStatus(foundOrderId, { status: 'driver_location', driver_location: JSON.stringify(body.message.location) });
+      // Fetch order for customer info
+      const order = await getOrder(foundOrderId);
+      // Calculate ETA if customer location is available
+      let eta = null;
+      if (order && order.location) {
+        let customerLocation;
+        try {
+          customerLocation = JSON.parse(order.location);
+        } catch { customerLocation = null; }
+        if (customerLocation && customerLocation.lat && customerLocation.lng) {
+          const driverLocation = body.message.location;
+          const R = 6371;
+          const dLat = (customerLocation.lat-driverLocation.latitude)*Math.PI/180;
+          const dLon = (customerLocation.lng-driverLocation.longitude)*Math.PI/180;
+          const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(driverLocation.latitude*Math.PI/180)*Math.cos(customerLocation.lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+          const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const distance = R * c;
+          eta = Math.round((distance/40)*60);
+          if (eta < 1) eta = 1;
+          await updateOrderStatus(foundOrderId, { eta: eta.toString() });
+        }
+      }
+      // Notify customer with driver location and ETA
+      if (order) {
+        let msg = `🚗 Driver shared location: https://www.google.com/maps?q=${body.message.location.latitude},${body.message.location.longitude}`;
+        if (eta) msg += `\n⏱️ Estimated arrival: ${eta} min`;
+        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: order.user_id,
+            text: msg
+          })
+        });
+        // Confirm to driver
+        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: process.env.ADMIN_CHAT_ID,
+            text: `Location shared with customer for Order ID: ${foundOrderId}.` + (eta ? ` ETA: ${eta} min.` : '')
+          })
+        });
+      }
     }
     res.send({ ok: true });
     return;

@@ -65,12 +65,26 @@ function showStep(step) {
 viewOrderBtn.addEventListener('click', () => {
   orderModal.style.display = 'flex';
   showStep(0);
-  // Render summary
+  renderOrderSummaryStep();
+});
+
+function renderOrderSummaryStep() {
   let html = '';
   let total = 0;
   Object.entries(cart).forEach(([meal, { qty, price, emoji }]) => {
     if (qty > 0) {
-      html += `<div class='order-item'>${emoji} <b>${meal}</b> <span class='qty-x'>${qty}x</span> <span class='order-price'>$${(price * qty).toFixed(2)}</span></div>`;
+      html += `<div class='order-item' data-meal='${meal}'>
+        ${emoji} <b>${meal}</b>
+        <div class='summary-qty-controls'>
+          <button class='summary-qty-btn minus'>−</button>
+          <span class='summary-qty-badge'>${qty}</span>
+          <button class='summary-qty-btn plus'>+</button>
+        </div>
+        <div class='summary-prices'>
+          <span class='summary-price'>1x = $${price.toFixed(2)}</span>
+          <span class='summary-price'>${qty}x = $${(price * qty).toFixed(2)}</span>
+        </div>
+      </div>`;
       total += price * qty;
     }
   });
@@ -78,7 +92,27 @@ viewOrderBtn.addEventListener('click', () => {
   html += `<div class='order-total'>Total: <b>$${total.toFixed(2)}</b></div>`;
   orderSummaryStep.innerHTML = html;
   nextToCommentBtn.disabled = !Object.keys(cart).length;
-});
+
+  // Add event listeners for summary qty controls
+  orderSummaryStep.querySelectorAll('.order-item').forEach(item => {
+    const meal = item.getAttribute('data-meal');
+    const minusBtn = item.querySelector('.summary-qty-btn.minus');
+    const plusBtn = item.querySelector('.summary-qty-btn.plus');
+    minusBtn.addEventListener('click', () => {
+      if (cart[meal] && cart[meal].qty > 1) {
+        cart[meal].qty--;
+      } else {
+        delete cart[meal];
+      }
+      renderOrderSummaryStep();
+    });
+    plusBtn.addEventListener('click', () => {
+      cart[meal].qty++;
+      renderOrderSummaryStep();
+    });
+  });
+}
+
 closeModalBtn.addEventListener('click', () => {
   orderModal.style.display = 'none';
 });

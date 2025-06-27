@@ -1,6 +1,8 @@
 // api/order.js
 import fs from 'fs';
 import path from 'path';
+import db from './db.js';
+import { v4 as uuidv4 } from 'uuid';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -8,7 +10,11 @@ export default async function handler(req, res) {
   }
 
   console.log('Incoming order request:', req.body);
-  const { meal, user, location, comment, orderId } = req.body;
+  const { meal, user, location, comment } = req.body;
+  const order_id = `${user.id}_${Date.now()}`;
+  const items = Array.isArray(meal) ? meal : [{ name: meal, qty: 1 }];
+  const user_id = user.id;
+  const status = 'pending';
 
   const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
   const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
@@ -37,6 +43,13 @@ Driver: Please press a button below to update order status or reply to this mess
   };
 
   try {
+    // Insert order into database
+    await db.query(
+      `INSERT INTO orders (order_id, user_id, items, comment, location, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+      [order_id, user_id, JSON.stringify(items), comment || '', JSON.stringify(location), status]
+    );
+
     // Send order message to admin group with location request button
     const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -49,27 +62,11 @@ Driver: Please press a button below to update order status or reply to this mess
     });
     const tgData = await tgRes.json();
     console.log('Telegram API response:', tgData);
-    res.status(200).json({ success: true, telegram: tgData });
+    res.status(200).json({ success: true, orderId: order_id });
   } catch (err) {
-    console.error('Error sending message to Telegram:', err);
+    console.error('Error saving order:', err);
     res.status(500).json({ success: false, error: err.message });
   }
-}
-
-// Helper to store and retrieve order status (for demo, use a JSON file)
-const ORDERS_FILE = path.join(process.cwd(), 'orders.json');
-function saveOrderStatus(orderId, status) {
-  let orders = {};
-  if (fs.existsSync(ORDERS_FILE)) {
-    orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
-  }
-  orders[orderId] = status;
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders));
-}
-function getOrderStatus(orderId) {
-  if (!fs.existsSync(ORDERS_FILE)) return null;
-  const orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
-  return orders[orderId] || null;
 }
 
 // Vercel API route for webhook
