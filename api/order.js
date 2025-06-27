@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   }
 
   console.log('Incoming order request:', req.body);
-  const { meal, user, location } = req.body;
+  const { meal, user, location, comment, orderId } = req.body;
 
   const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
   const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
@@ -19,7 +19,10 @@ export default async function handler(req, res) {
 🍽️ New Food Order!
 👤 User: ${user?.first_name || 'Unknown'} (@${user?.username || '-'})
 🧾 Order: ${meal}
-📍 Location: https://www.google.com/maps?q=${location.lat},${location.lng}
+📍 Location: ${location.lat && location.lng ? `https://www.google.com/maps?q=${location.lat},${location.lng}` : (location.manual || '-') }
+📝 Comment: ${comment || '-'}
+\nOrder ID: ${orderId}
+Driver: Please press a button below to update order status or reply to this message with your location.
   `;
 
   // Inline keyboard to request location from admin

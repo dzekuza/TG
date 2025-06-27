@@ -90,5 +90,59 @@ export default async function handler(req, res) {
     res.send({ ok: true });
     return;
   }
+  // Handle location message from driver
+  if (body.message && body.message.location && body.message.chat && body.message.chat.id == process.env.ADMIN_CHAT_ID) {
+    // If the driver replies to a specific order notification, use reply_to_message to find the order
+    let orders = {};
+    if (fs.existsSync(ORDERS_FILE)) {
+      orders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
+    }
+    let foundOrderId = null;
+    // Try to match by reply_to_message (if driver replies to the order notification)
+    if (body.message.reply_to_message && body.message.reply_to_message.text) {
+      // Find orderId in the notification text (assume orderId is included in the admin notification)
+      const text = body.message.reply_to_message.text;
+      const match = text.match(/Order ID: (\w+_\d+)/);
+      if (match) {
+        foundOrderId = match[1];
+      }
+    }
+    // Fallback: find latest pending/eta order
+    if (!foundOrderId) {
+      const orderIds = Object.keys(orders).reverse();
+      for (const oid of orderIds) {
+        if (orders[oid].status === 'pending' || orders[oid].status === 'eta') {
+          foundOrderId = oid;
+          break;
+        }
+      }
+    }
+    if (foundOrderId) {
+      const order = orders[foundOrderId];
+      order.driverLocation = body.message.location;
+      order.status = 'driver_location';
+      saveOrderStatus(foundOrderId, order);
+      // Notify customer with driver location (send Google Maps link)
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: order.customerChatId,
+          text: `🚗 Driver shared location: https://www.google.com/maps?q=${body.message.location.latitude},${body.message.location.longitude}`
+        })
+      });
+      // Confirm to driver
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: process.env.ADMIN_CHAT_ID,
+          text: `Location shared with customer for Order ID: ${foundOrderId}.`
+        })
+      });
+    }
+    res.send({ ok: true });
+    return;
+  }
   res.send({ ok: true });
 }
