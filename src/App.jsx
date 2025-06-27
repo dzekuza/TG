@@ -93,7 +93,7 @@ export default function App() {
     setCart({});
   };
 
-  const handleSubmitOrder = async () => {
+  const handleSubmitOrder = async ({ address, comment } = {}) => {
     if (!user) {
       alert('Please log in to place an order');
       return;
@@ -110,8 +110,8 @@ export default function App() {
       const orderData = {
         meal: cartItems.map(product => `${product.name} x${cart[product.id]}`).join(', '),
         user: user,
-        location: { lat: 0, lng: 0 }, // You can implement location detection
-        comment: ''
+        location: address ? { manual: address } : { lat: 0, lng: 0 },
+        comment: comment || ''
       };
 
       const response = await fetch('/api/order', {
@@ -139,6 +139,8 @@ export default function App() {
     }
   };
 
+  const handleGoToCart = () => setActiveTab('orders');
+
   const totalItems = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
 
   const renderContent = () => {
@@ -149,6 +151,7 @@ export default function App() {
             products={products}
             cart={cart}
             onQuantityChange={handleQuantityChange}
+            onGoToCart={handleGoToCart}
           />
         );
       case 'orders':
