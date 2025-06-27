@@ -131,14 +131,26 @@ getLocationBtn.addEventListener('click', async () => {
     manualField = document.createElement('input');
     manualField.type = 'text';
     manualField.id = 'manual-location-field';
-    manualField.placeholder = 'Paste your location (lat,lng or address)';
+    manualField.placeholder = 'Paste your location (lat,lng, address, or Google Maps link)';
     manualField.className = 'order-comment';
     locationStatusModal.parentNode.insertBefore(manualField, locationStatusModal.nextSibling);
   }
   manualField.style.display = 'block';
   manualField.addEventListener('input', () => {
-    userCoords = manualField.value;
-    locationStatusModal.textContent = userCoords ? `📍 ${userCoords}` : '';
+    let val = manualField.value.trim();
+    // If it's a Google Maps link, treat as manual string
+    if (val.startsWith('http')) {
+      userCoords = { manual: val };
+      locationStatusModal.textContent = `📍 ${val}`;
+    } else if (/^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(val)) {
+      // If it's lat,lng
+      const [lat, lng] = val.split(',').map(Number);
+      userCoords = { lat, lng };
+      locationStatusModal.textContent = `📍 ${lat}, ${lng}`;
+    } else {
+      userCoords = { manual: val };
+      locationStatusModal.textContent = val ? `📍 ${val}` : '';
+    }
   });
 });
 

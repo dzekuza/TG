@@ -1,0 +1,9 @@
+{
+  "name": "tg-food-ordering-app",
+  "version": "1.0.0",
+  "main": "server/index.js",
+  "type": "module",
+  "dependencies": {
+    "pg": "^8.11.3"
+  }
+}
