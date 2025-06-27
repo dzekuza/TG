@@ -206,21 +206,36 @@ export function PastOrders({ orders = [] }) {
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-3 h-3" />
-                    {isGoogleMaps && lat && lng ? (
-                      <>
-                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">Open in Google Maps</a>
-                        <iframe
-                          title="Google Map"
-                          width="100%"
-                          height="180"
-                          className="rounded-lg border mt-2"
-                          src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
-                          allowFullScreen
-                        ></iframe>
-                      </>
-                    ) : (
-                      <span>{typeof link === 'string' ? link : JSON.stringify(link)}</span>
-                    )}
+                    {(() => {
+                      // Try to extract lat/lng from any link
+                      let lat = null, lng = null, found = false;
+                      if (typeof link === 'string') {
+                        let match = link.match(/@([\d.\-]+),([\d.\-]+)/);
+                        if (!match) match = link.match(/q=([\d.\-]+),([\d.\-]+)/);
+                        if (match) {
+                          lat = match[1];
+                          lng = match[2];
+                          found = true;
+                        }
+                      }
+                      if (found && lat && lng) {
+                        return (
+                          <>
+                            <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">Open in Google Maps</a>
+                            <iframe
+                              title="Google Map"
+                              width="100%"
+                              height="180"
+                              className="rounded-lg border mt-2"
+                              src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
+                              allowFullScreen
+                            ></iframe>
+                          </>
+                        );
+                      } else {
+                        return <span>{typeof link === 'string' ? link : JSON.stringify(link)}</span>;
+                      }
+                    })()}
                   </div>
                 </div>
               )}

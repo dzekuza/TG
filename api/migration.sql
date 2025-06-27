@@ -15,3 +15,8 @@ CREATE TABLE IF NOT EXISTS orders (
 
 -- Index for fast user order lookup
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+
+CREATE TABLE IF NOT EXISTS admin_user_notes (
+  user_id TEXT PRIMARY KEY,
+  note TEXT
+);
