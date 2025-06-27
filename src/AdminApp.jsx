@@ -552,6 +552,11 @@ export default function AdminApp() {
               <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl text-center mb-8">
                 <DriverStatsPanel mainAdminPassword={mainAdminPassword} />
               </div>
+              {/* Product management */}
+              <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl mb-8">
+                <h3 className="text-lg font-semibold mb-2">Product Management</h3>
+                <ProductManagementPanel mainAdminPassword={mainAdminPassword} />
+              </div>
               {/* Admin user management */}
               <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
                 <h3 className="text-lg font-semibold mb-2">Admin Users</h3>
@@ -843,6 +848,200 @@ function AdminChatPanel({ adminPassword }) {
         >Send</button>
       </div>
       {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
+    </div>
+  );
+}
+
+function ProductManagementPanel({ mainAdminPassword }) {
+  const [products, setProducts] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ name: '', price: '', image_url: '', available: true });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [stats, setStats] = useState([]);
+  const [statsPeriod, setStatsPeriod] = useState('month');
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      setProducts(data.products || []);
+    } catch {
+      setError('Error loading products');
+    } finally {
+      setLoading(false);
+    }
+  };
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`/api/products-stats?period=${statsPeriod}`);
+      const data = await res.json();
+      setStats(data.stats || []);
+    } catch {}
+  };
+  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { fetchStats(); }, [statsPeriod]);
+
+  const handleFormChange = e => {
+    const { name, value, type, checked } = e.target;
+    setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
+  };
+  const handleEdit = p => {
+    setEditing(p.id);
+    setForm({ name: p.name, price: p.price, image_url: p.image_url || '', available: p.available });
+  };
+  const handleCancel = () => {
+    setEditing(null);
+    setForm({ name: '', price: '', image_url: '', available: true });
+  };
+  const handleSave = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const method = editing ? 'PUT' : 'POST';
+      const body = { ...form, price: Number(form.price), password: mainAdminPassword };
+      if (editing) body.id = editing;
+      const res = await fetch('/api/products', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      fetchProducts();
+      handleCancel();
+    } catch {
+      setError('Error saving product');
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleRemove = async id => {
+    if (!window.confirm('Remove this product?')) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/products', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, password: mainAdminPassword })
+      });
+      if (!res.ok) throw new Error('Failed to remove');
+      fetchProducts();
+    } catch {
+      setError('Error removing product');
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <div>
+      <div className="mb-4 flex flex-col md:flex-row gap-4 items-end">
+        <input
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+          name="name"
+          placeholder="Product name"
+          value={form.name}
+          onChange={handleFormChange}
+        />
+        <input
+          className="w-32 px-3 py-2 border border-gray-300 rounded-lg"
+          name="price"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Price (€)"
+          value={form.price}
+          onChange={handleFormChange}
+        />
+        <input
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+          name="image_url"
+          placeholder="Image URL"
+          value={form.image_url}
+          onChange={handleFormChange}
+        />
+        <label className="flex items-center gap-1 text-xs">
+          <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} /> Available
+        </label>
+        <button
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
+          onClick={handleSave}
+          disabled={loading || !form.name || !form.price}
+        >{editing ? 'Save' : 'Add'}</button>
+        {editing && <button className="ml-2 text-xs text-gray-500 hover:underline" onClick={handleCancel}>Cancel</button>}
+      </div>
+      {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+      <table className="min-w-full text-xs md:text-sm border mb-6">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="px-2 py-1 border">ID</th>
+            <th className="px-2 py-1 border">Name</th>
+            <th className="px-2 py-1 border">Price (€)</th>
+            <th className="px-2 py-1 border">Image</th>
+            <th className="px-2 py-1 border">Available</th>
+            <th className="px-2 py-1 border">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map(p => (
+            <tr key={p.id} className="even:bg-gray-50">
+              <td className="px-2 py-1 border text-center">{p.id}</td>
+              <td className="px-2 py-1 border">{p.name}</td>
+              <td className="px-2 py-1 border text-right">{Number(p.price).toFixed(2)}</td>
+              <td className="px-2 py-1 border text-center">{p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 object-cover rounded" />}</td>
+              <td className="px-2 py-1 border text-center">{p.available ? 'Yes' : 'No'}</td>
+              <td className="px-2 py-1 border text-center">
+                <button className="text-blue-600 hover:underline text-xs mr-2" onClick={() => handleEdit(p)}>Edit</button>
+                <button className="text-red-600 hover:underline text-xs" onClick={() => handleRemove(p.id)}>Remove</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="mb-2 flex gap-2 items-center">
+        <span className="text-xs">Stats period:</span>
+        <select className="border rounded px-2 py-1 text-xs" value={statsPeriod} onChange={e => setStatsPeriod(e.target.value)}>
+          <option value="day">Day</option>
+          <option value="week">Week</option>
+          <option value="month">Month</option>
+        </select>
+      </div>
+      <ProductStatsGraph stats={stats} period={statsPeriod} />
+    </div>
+  );
+}
+
+function ProductStatsGraph({ stats, period }) {
+  // Group by product name, then by period
+  const grouped = {};
+  stats.forEach(s => {
+    if (!grouped[s.name]) grouped[s.name] = [];
+    grouped[s.name].push({ period: s.period, count: Number(s.count) });
+  });
+  const periods = Array.from(new Set(stats.map(s => s.period))).sort();
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-xs md:text-sm border">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="px-2 py-1 border">Product</th>
+            {periods.map(p => <th key={p} className="px-2 py-1 border">{String(p).slice(0, 10)}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(grouped).map(([name, arr]) => (
+            <tr key={name}>
+              <td className="px-2 py-1 border font-semibold">{name}</td>
+              {periods.map(p => {
+                const found = arr.find(a => a.period === p);
+                return <td key={p} className="px-2 py-1 border text-center">{found ? found.count : 0}</td>;
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 } 

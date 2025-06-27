@@ -221,7 +221,6 @@ export function PastOrders({ orders = [] }) {
                       if (found && lat && lng) {
                         return (
                           <>
-                            <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">Open in Google Maps</a>
                             <iframe
                               title="Google Map"
                               width="100%"
