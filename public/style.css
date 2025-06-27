@@ -32,8 +32,8 @@ body {
 }
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
   padding: 24px;
 }
 .menu-card {
@@ -231,6 +231,43 @@ body {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 18px;
+}
+.qty-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  gap: 0;
+}
+.qty-btn {
+  background: #23272f;
+  color: #ffb347;
+  border: 1px solid #ffb347;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 0 4px;
+  transition: background 0.2s, color 0.2s;
+}
+.qty-btn:active {
+  background: #ffb347;
+  color: #23272f;
+}
+.qty-badge {
+  display: inline-block;
+  min-width: 28px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #fff;
+  background: #23272f;
+  border: 1px solid #444a;
+  border-radius: 6px;
+  margin: 0 2px;
+  padding: 2px 0;
 }
 @media (max-width: 500px) {
   .app-container {

@@ -111,6 +111,9 @@ getLocationBtn.addEventListener('click', async () => {
   }
 });
 
+let currentOrderId = null;
+let pollInterval = null;
+
 submitOrderBtn.addEventListener('click', async () => {
   if (!Object.keys(cart).length) {
     alert('Please add at least one item.');
@@ -122,7 +125,7 @@ submitOrderBtn.addEventListener('click', async () => {
   }
   const tgUser = Telegram.WebApp.initDataUnsafe.user;
   const comment = orderComment.value;
-  await fetch("https://tg-gamma-ten.vercel.app/api/order", {
+  const res = await fetch("https://tg-gamma-ten.vercel.app/api/order", {
     method: "POST",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -132,9 +135,40 @@ submitOrderBtn.addEventListener('click', async () => {
       comment
     })
   });
+  const data = await res.json();
+  if (data.orderId) {
+    currentOrderId = data.orderId;
+    pollOrderStatus();
+  }
   Telegram.WebApp.close();
 });
 
+function pollOrderStatus() {
+  if (!currentOrderId) return;
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    const res = await fetch(`/order-status/${currentOrderId}`);
+    const status = await res.json();
+    updateOrderStatusUI(status);
+    if (status.status === 'arrived') clearInterval(pollInterval);
+  }, 5000);
+}
+
+function updateOrderStatusUI(status) {
+  const statusDiv = document.getElementById('order-status-ui');
+  if (!statusDiv) return;
+  if (!status || status.status === 'pending') {
+    statusDiv.innerHTML = '';
+    return;
+  }
+  if (status.status === 'eta') {
+    statusDiv.innerHTML = `<div class="order-update eta">⏱️ Estimated arrival: <b>${status.eta} min</b></div>`;
+  } else if (status.status === 'arrived') {
+    statusDiv.innerHTML = '<div class="order-update arrived">🚗 Your order has arrived!</div>';
+  }
+}
+
+// Telegram WebApp initialization
 Telegram.WebApp.ready();
 
 document.getElementById('get-location').addEventListener('click', () => {
@@ -190,3 +224,59 @@ document.getElementById('order-btn').addEventListener('click', async () => {
     alert('Unable to fetch location');
   });
 });
+
+// --- ORDER STATUS & DRIVER FLOW ---
+// This is a simplified simulation. In production, use a backend with real-time updates (WebSocket, polling, or Telegram API notifications).
+
+// Simulate order status updates
+let orderStatus = null;
+let etaInterval = null;
+
+// Called by driver/admin when order is received
+window.driverStartOrder = function(driverCoords, customerCoords) {
+  // Calculate ETA (simple haversine formula, 40km/h avg speed)
+  const R = 6371; // km
+  const dLat = (customerCoords.lat-driverCoords.lat)*Math.PI/180;
+  const dLon = (customerCoords.lng-driverCoords.lng)*Math.PI/180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(driverCoords.lat*Math.PI/180)*Math.cos(customerCoords.lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+  let eta = Math.round((distance/40)*60); // minutes
+  if (eta < 1) eta = 1;
+  orderStatus = { eta, arrived: false };
+  // Start dynamic update
+  if (etaInterval) clearInterval(etaInterval);
+  etaInterval = setInterval(() => {
+    if (orderStatus.eta > 1) {
+      orderStatus.eta--;
+      updateOrderStatusUI();
+    } else {
+      clearInterval(etaInterval);
+    }
+  }, 60000);
+  updateOrderStatusUI();
+};
+
+// Called by driver/admin when arrived
+window.driverArrived = function() {
+  if (orderStatus) {
+    orderStatus.arrived = true;
+    updateOrderStatusUI();
+    if (etaInterval) clearInterval(etaInterval);
+  }
+};
+
+// Update UI for customer
+function updateOrderStatusUI() {
+  const statusDiv = document.getElementById('order-status-ui');
+  if (!statusDiv) return;
+  if (!orderStatus) {
+    statusDiv.innerHTML = '';
+    return;
+  }
+  if (orderStatus.arrived) {
+    statusDiv.innerHTML = '<div class="order-update arrived">🚗 Your order has arrived!</div>';
+  } else {
+    statusDiv.innerHTML = `<div class="order-update eta">⏱️ Estimated arrival: <b>${orderStatus.eta} min</b></div>`;
+  }
+}
