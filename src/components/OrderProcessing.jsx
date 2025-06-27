@@ -128,6 +128,27 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
             Paste location
           </button>
         </div>
+        <button
+          type="button"
+          className="mt-2 w-full bg-green-100 text-green-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-green-200"
+          onClick={() => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  const { latitude, longitude } = pos.coords;
+                  setAddress(`https://www.google.com/maps?q=${latitude},${longitude}`);
+                },
+                (err) => {
+                  alert('Could not fetch location. Please allow location access.');
+                }
+              );
+            } else {
+              alert('Geolocation is not supported by your browser.');
+            }
+          }}
+        >
+          Fetch my location
+        </button>
       </div>
 
       {/* Comments area */}
