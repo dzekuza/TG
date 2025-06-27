@@ -210,4 +210,6 @@ This project is licensed under the ISC License.
 For issues and questions:
 - Check the existing issues
 - Create a new issue with detailed description
-- Include error logs and steps to reproduce 
+- Include error logs and steps to reproduce
+
+Last updated: 2024-06-28 
