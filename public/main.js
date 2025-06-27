@@ -37,21 +37,34 @@ menuCards.forEach(card => {
   }
 });
 
-// --- ORDER MODAL LOGIC ---
+// --- MULTISTEP ORDER MODAL LOGIC ---
 const viewOrderBtn = document.getElementById('view-order-btn');
 const orderModal = document.getElementById('order-modal');
 const closeModalBtn = document.getElementById('close-modal');
-const orderSummary = document.getElementById('order-summary');
+const orderSummaryStep = document.getElementById('order-summary-step');
 const orderComment = document.getElementById('order-comment');
 const getLocationBtn = document.getElementById('get-location-btn');
 const locationStatusModal = document.getElementById('location-status-modal');
 const submitOrderBtn = document.getElementById('submit-order-btn');
+const nextToCommentBtn = document.getElementById('next-to-comment');
+const nextToLocationBtn = document.getElementById('next-to-location');
+const backToSummaryBtn = document.getElementById('back-to-summary');
+const backToCommentBtn = document.getElementById('back-to-comment');
+const step1 = document.getElementById('order-step-1');
+const step2 = document.getElementById('order-step-2');
+const step3 = document.getElementById('order-step-3');
 
 let userCoords = null;
 
+function showStep(step) {
+  [step1, step2, step3].forEach((el, i) => {
+    el.classList.toggle('active', i === step);
+  });
+}
+
 viewOrderBtn.addEventListener('click', () => {
-  // Show modal
-  orderModal.style.display = 'block';
+  orderModal.style.display = 'flex';
+  showStep(0);
   // Render summary
   let html = '';
   let total = 0;
@@ -63,14 +76,29 @@ viewOrderBtn.addEventListener('click', () => {
   });
   if (!html) html = '<div class="order-item">No items selected.</div>';
   html += `<div class='order-total'>Total: <b>$${total.toFixed(2)}</b></div>`;
-  orderSummary.innerHTML = html;
+  orderSummaryStep.innerHTML = html;
+  nextToCommentBtn.disabled = !Object.keys(cart).length;
 });
 closeModalBtn.addEventListener('click', () => {
   orderModal.style.display = 'none';
 });
+nextToCommentBtn.addEventListener('click', () => showStep(1));
+backToSummaryBtn.addEventListener('click', () => showStep(0));
+nextToLocationBtn.addEventListener('click', () => showStep(2));
+backToCommentBtn.addEventListener('click', () => showStep(1));
 
-getLocationBtn.addEventListener('click', () => {
-  if (navigator.geolocation) {
+getLocationBtn.addEventListener('click', async () => {
+  // Use Telegram WebApp geolocation if available
+  if (window.Telegram && Telegram.WebApp && Telegram.WebApp.requestGeoLocation) {
+    Telegram.WebApp.requestGeoLocation((location) => {
+      if (location && location.latitude && location.longitude) {
+        userCoords = { lat: location.latitude, lng: location.longitude };
+        locationStatusModal.textContent = `📍 ${userCoords.lat}, ${userCoords.lng}`;
+      } else {
+        alert('Unable to fetch location from Telegram.');
+      }
+    });
+  } else if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition((position) => {
       userCoords = {
         lat: position.coords.latitude,
