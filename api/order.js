@@ -37,14 +37,10 @@ export default async function handler(req, res) {
 Driver: Please press a button below to update order status or reply to this message with your location.
   `;
 
-  // Inline keyboard to request location from admin
+  // Inline keyboard for admin: status workflow
   const replyMarkup = {
     inline_keyboard: [[
-      {
-        text: 'Share Your Location',
-        request_location: true,
-        callback_data: `share_location_${user?.id}`
-      }
+      { text: 'Set Preparing', callback_data: `set_status_preparing_${order_id}` }
     ]]
   };
 

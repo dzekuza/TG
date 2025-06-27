@@ -88,6 +88,89 @@ export default async function handler(req, res) {
           })
         });
       }
+    } else if (data.startsWith('set_status_preparing_')) {
+      const orderId = data.replace('set_status_preparing_', '');
+      await updateOrderStatus(orderId, { status: 'preparing' });
+      // Update admin message with next button: Arriving
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: process.env.ADMIN_CHAT_ID,
+          message_id: cb.message.message_id,
+          reply_markup: {
+            inline_keyboard: [[
+              { text: 'Set Arriving', callback_data: `set_status_arriving_${orderId}` }
+            ]]
+          }
+        })
+      });
+      // Notify customer
+      const order = await getOrder(orderId);
+      if (order) {
+        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: order.user_id,
+            text: '🍳 Your order is being prepared!'
+          })
+        });
+      }
+    } else if (data.startsWith('set_status_arriving_')) {
+      const orderId = data.replace('set_status_arriving_', '');
+      await updateOrderStatus(orderId, { status: 'arriving' });
+      // Update admin message with next button: Arrived
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: process.env.ADMIN_CHAT_ID,
+          message_id: cb.message.message_id,
+          reply_markup: {
+            inline_keyboard: [[
+              { text: 'Set Arrived', callback_data: `set_status_arrived_${orderId}` }
+            ]]
+          }
+        })
+      });
+      // Notify customer
+      const order = await getOrder(orderId);
+      if (order) {
+        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: order.user_id,
+            text: '🚗 Your order is on the way!'
+          })
+        });
+      }
+    } else if (data.startsWith('set_status_arrived_')) {
+      const orderId = data.replace('set_status_arrived_', '');
+      await updateOrderStatus(orderId, { status: 'arrived' });
+      // Remove inline keyboard
+      await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: process.env.ADMIN_CHAT_ID,
+          message_id: cb.message.message_id,
+          reply_markup: { inline_keyboard: [] }
+        })
+      });
+      // Notify customer
+      const order = await getOrder(orderId);
+      if (order) {
+        await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: order.user_id,
+            text: '✅ Your order has arrived!'
+          })
+        });
+      }
     }
     res.send({ ok: true });
     return;
