@@ -35,14 +35,16 @@ async def ask_location(client, message: Message):
     )
     await message.reply("Please tap the button below to share your live location:", reply_markup=reply_markup)
 
-# === Handle location message ===
 @app.on_message(filters.location)
 async def handle_location(client, message: Message):
     lat = message.location.latitude
     lng = message.location.longitude
     chat_id = message.chat.id
+
     print(f"📍 Received location from {chat_id}: {lat}, {lng}")
 
-    await message.reply("✅ Location received! Thank you.")
+    await message.reply(
+        f"✅ Thanks! Your location was received:\nLatitude: {lat}\nLongitude: {lng}"
+    )
 
 app.run()
