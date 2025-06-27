@@ -1,7 +1,7 @@
 // api/order.js
 import fs from 'fs';
 import path from 'path';
-import * as db from './db.js';
+import { query } from './db.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export default async function handler(req, res) {
@@ -50,7 +50,7 @@ Driver: Please press a button below to update order status or reply to this mess
 
   try {
     // Insert order into database
-    await db.query(
+    await query(
       `INSERT INTO orders (order_id, user_id, items, comment, location, status, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
       [order_id, user_id, JSON.stringify(items), comment || '', JSON.stringify(location), status]

@@ -1,16 +1,16 @@
 // api/webhook.js
-import db from './db.js';
+import { query } from './db.js';
 
 async function updateOrderStatus(orderId, fields) {
   const setClause = Object.keys(fields).map((k, i) => `${k} = $${i + 2}`).join(', ');
   const values = [orderId, ...Object.values(fields)];
-  await db.query(
+  await query(
     `UPDATE orders SET ${setClause}, updated_at = NOW() WHERE order_id = $1`,
     values
   );
 }
 async function getOrder(orderId) {
-  const { rows } = await db.query('SELECT * FROM orders WHERE order_id = $1', [orderId]);
+  const { rows } = await query('SELECT * FROM orders WHERE order_id = $1', [orderId]);
   return rows[0] || null;
 }
 
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     }
     if (!foundOrderId) {
       // Fallback: find latest pending/eta order
-      const { rows } = await db.query(
+      const { rows } = await query(
         `SELECT order_id FROM orders WHERE status IN ('pending','eta') ORDER BY created_at DESC LIMIT 1`
       );
       if (rows.length) foundOrderId = rows[0].order_id;
