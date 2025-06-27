@@ -221,7 +221,7 @@ export default function AdminApp() {
           className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'admin' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
         >
           <Users className="w-5 h-5" />
-          <span className="text-xs font-semibold">Admin</span>
+          <span className="text-xs font-semibold">⚡ Admin</span>
         </button>
       </div>
     </div>
