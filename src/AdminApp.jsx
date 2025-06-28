@@ -144,7 +144,8 @@ export default function AdminApp() {
           eta,
           driver_location: driverLocation,
           admin_note: adminNote,
-          user_id: userId
+          user_id: userId,
+          password: adminPassword
         })
       });
       if (response.ok) {
