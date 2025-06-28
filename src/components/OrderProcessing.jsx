@@ -7,7 +7,7 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
   const cartItems = products.filter(product => cart[product.id] > 0);
   const totalItems = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
   const totalQty = totalItems;
-  const baseTotal = cartItems.reduce((sum, product) => sum + (product.price * cart[product.id]), 0);
+  const baseTotal = cartItems.reduce((sum, product) => sum + ((typeof product.price === 'number' ? product.price : 0) * cart[product.id]), 0);
 
   // Discount logic: 10% off for 1 more, 20% for 2 more, etc. (max 30%)
   let discount = 0;
@@ -48,30 +48,33 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
       </div>
 
       <div className="space-y-4 mb-6">
-        {cartItems.map((product) => (
-          <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-2xl">{product.emoji}</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="mb-1">{product.name}</h3>
-                <p className="text-gray-600 text-sm mb-2">${product.price.toFixed(2)} each</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">
-                    Qty: {cart[product.id]} × ${product.price.toFixed(2)} = ${(product.price * cart[product.id]).toFixed(2)}
-                  </span>
-                  <button
-                    onClick={() => onQuantityChange(product.id, 0)}
-                    className="text-red-500 hover:text-red-700 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+        {cartItems.map((product) => {
+          const price = typeof product.price === 'number' ? product.price : 0;
+          return (
+            <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-2xl">{product.emoji}</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="mb-1">{product.name}</h3>
+                  <p className="text-gray-600 text-sm mb-2">${price.toFixed(2)} each</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">
+                      Qty: {cart[product.id]} × ${price.toFixed(2)} = {(price * cart[product.id]).toFixed(2)}
+                    </span>
+                    <button
+                      onClick={() => onQuantityChange(product.id, 0)}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Upsell/discount message */}

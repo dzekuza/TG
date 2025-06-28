@@ -12,9 +12,9 @@ export function ProductCard({ product, quantity, onQuantityChange }) {
   };
 
   // Calculate discounted prices for 2x and 3x
-  const price1 = product.price;
-  const price2 = (product.price * 2 * 0.95); // 5% off for 2
-  const price3 = (product.price * 3 * 0.90); // 10% off for 3
+  const price1 = typeof product.price === 'number' ? product.price : 0;
+  const price2 = price1 * 2 * 0.95; // 5% off for 2
+  const price3 = price1 * 3 * 0.90; // 10% off for 3
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -45,7 +45,7 @@ export function ProductCard({ product, quantity, onQuantityChange }) {
         </div>
         {quantity > 0 && (
           <div className="text-xs text-gray-500">
-            Total: €{(product.price * quantity).toFixed(2)}
+            Total: €{(price1 * quantity).toFixed(2)}
           </div>
         )}
       </div>
