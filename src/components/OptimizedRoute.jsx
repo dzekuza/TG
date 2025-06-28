@@ -63,6 +63,18 @@ const getPriorityConfig = (priority) => {
   }
 };
 
+// Helper to reverse geocode lat/lng to address (OpenStreetMap Nominatim API)
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+    if (!res.ok) throw new Error('Failed to fetch address');
+    const data = await res.json();
+    return data.display_name || `${lat},${lng}`;
+  } catch {
+    return `${lat},${lng}`;
+  }
+}
+
 export function OptimizedRoute({ adminPassword }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +82,7 @@ export function OptimizedRoute({ adminPassword }) {
   const [driverLoc, setDriverLoc] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const intervalRef = useRef();
+  const [addressCache, setAddressCache] = useState({});
 
   // Fetch orders
   const fetchOrders = async (showLoading = false) => {
@@ -163,6 +176,20 @@ export function OptimizedRoute({ adminPassword }) {
   // Pakeliui button should always set status to arriving
   const handleArriving = (order) => {
     updateOrderStatus(order.order_id, 'arriving', order.comment, order.eta, order.driver_location, order.admin_note, order.user_id, order.status);
+  };
+
+  // Helper to get address from stop/location
+  const getAddress = (stop) => {
+    if (stop.address) return stop.address;
+    const loc = parseLatLng(stop.location);
+    if (!loc) return '-';
+    const key = `${loc.lat},${loc.lng}`;
+    if (addressCache[key]) return addressCache[key];
+    // Start reverse geocoding if not cached
+    reverseGeocode(loc.lat, loc.lng).then(addr => {
+      setAddressCache(prev => ({ ...prev, [key]: addr }));
+    });
+    return '...';
   };
 
   if (loading) return <div className="text-center py-12">Kraunama...</div>;
@@ -275,13 +302,7 @@ export function OptimizedRoute({ adminPassword }) {
                         </div>
                         <div className="flex items-center gap-1 text-sm text-gray-600 mb-1 flex-wrap break-all">
                           <MapPin className="w-3 h-3" />
-                          {stop.address ? (
-                            <span className="truncate max-w-[180px]">{stop.address}</span>
-                          ) : loc ? (
-                            <span className="font-mono select-all" title="Copy coordinates">{loc.lat},{loc.lng}</span>
-                          ) : (
-                            <span>-</span>
-                          )}
+                          <span className="truncate max-w-[180px]">{getAddress(stop)}</span>
                         </div>
                       </div>
                       <div className="text-right min-w-[60px]">

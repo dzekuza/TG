@@ -83,6 +83,18 @@ function formatRelativeTime(dateString) {
   return `${diffDays} d ago`;
 }
 
+// Helper to reverse geocode lat/lng to address (OpenStreetMap Nominatim API)
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+    if (!res.ok) throw new Error('Failed to fetch address');
+    const data = await res.json();
+    return data.display_name || `${lat},${lng}`;
+  } catch {
+    return `${lat},${lng}`;
+  }
+}
+
 export default function AdminApp() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +107,7 @@ export default function AdminApp() {
   const [passwordError, setPasswordError] = useState('');
   const [activeNav, setActiveNav] = useState('orders');
   const [noteInput, setNoteInput] = useState({});
+  const [addressCache, setAddressCache] = useState({});
   const statusTabs = [
     { key: 'pending', label: 'Laukiama' },
     { key: 'arriving', label: 'Pakeliui' },
@@ -223,6 +236,35 @@ export default function AdminApp() {
     } finally {
       setUpdating(prev => ({ ...prev, [orderId]: false }));
     }
+  };
+
+  // Helper to get address from order/location
+  const getAddress = (order) => {
+    if (order.address) return order.address;
+    let loc = order.location;
+    try {
+      if (typeof loc === 'string') loc = JSON.parse(loc);
+    } catch {}
+    if (!loc) return '-';
+    let lat = null, lng = null;
+    if (loc.lat && loc.lng) {
+      lat = loc.lat;
+      lng = loc.lng;
+    } else if (loc.manual && typeof loc.manual === 'string') {
+      let match = loc.manual.match(/@([\d.\-]+),([\d.\-]+)/);
+      if (!match) match = loc.manual.match(/q=([\d.\-]+),([\d.\-]+)/);
+      if (match) {
+        lat = match[1];
+        lng = match[2];
+      }
+    }
+    if (!lat || !lng) return '-';
+    const key = `${lat},${lng}`;
+    if (addressCache[key]) return addressCache[key];
+    reverseGeocode(lat, lng).then(addr => {
+      setAddressCache(prev => ({ ...prev, [key]: addr }));
+    });
+    return '...';
   };
 
   if (!passwordEntered) {
@@ -412,7 +454,7 @@ export default function AdminApp() {
                             ) : (
                               <div className="flex items-center gap-2 text-gray-700">
                                 <MapPin className="w-4 h-4" />
-                                <span>{typeof loc === 'string' ? loc : JSON.stringify(loc)}</span>
+                                <span>{getAddress(order)}</span>
                               </div>
                             );
                           })()}

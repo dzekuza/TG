@@ -203,25 +203,36 @@ export function PastOrders({ orders = [] }) {
                     parsed = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
                   } catch {}
                   if (!Array.isArray(parsed)) parsed = [];
-                  return parsed.map((i, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                      <span className="text-lg w-8 h-8 flex items-center justify-center overflow-hidden rounded">
-                        {i.image_url ? (
-                          <img
-                            src={i.image_url}
-                            alt={i.name || ''}
-                            className="w-full h-full object-cover rounded"
-                            onError={e => { e.target.style.display = 'none'; }}
-                          />
-                        ) : (
-                          <span className="text-2xl">{i.emoji}</span>
-                        )}
-                      </span>
-                      <div className="flex-1">
-                        <div className="text-sm text-gray-900">{(i.name || i.meal || '') + (i.qty ? ` x${i.qty}` : '')}</div>
+                  return parsed.map((i, idx) => {
+                    // Defensive: handle missing or malformed product/item
+                    const hasImage = i && typeof i === 'object' && i.image_url;
+                    const hasEmoji = i && typeof i === 'object' && i.emoji;
+                    const name = i && typeof i === 'object' ? (i.name || i.meal || '') : '';
+                    const qty = i && typeof i === 'object' && i.qty ? ` x${i.qty}` : '';
+                    return (
+                      <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                        <span className="text-lg w-8 h-8 flex items-center justify-center overflow-hidden rounded">
+                          {hasImage ? (
+                            <img
+                              src={i.image_url}
+                              alt={name}
+                              className="w-full h-full object-cover rounded"
+                              onError={e => { e.target.style.display = 'none'; }}
+                            />
+                          ) : hasEmoji ? (
+                            <span className="text-2xl">{i.emoji}</span>
+                          ) : (
+                            <span className="text-2xl" title="Product not available">❓</span>
+                          )}
+                        </span>
+                        <div className="flex-1">
+                          <div className="text-sm text-gray-900">
+                            {name || <span className="italic text-gray-400">Product no longer available</span>}{qty}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ));
+                    );
+                  });
                 })()}
               </div>
 
