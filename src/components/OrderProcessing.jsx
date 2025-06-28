@@ -4,6 +4,7 @@ import { useState } from 'react';
 export function OrderProcessing({ products, cart, onQuantityChange, onClearCart, onSubmitOrder }) {
   const [address, setAddress] = useState('');
   const [comment, setComment] = useState('');
+  const [loadingPay, setLoadingPay] = useState(false);
   const cartItems = products.filter(product => cart[product.id] > 0);
   const totalItems = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
   const totalQty = totalItems;
@@ -37,6 +38,11 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
   }
   const discountAmount = baseTotal * discount;
   const total = baseTotal - discountAmount;
+
+  // Helper to check if address is a valid Google Maps link
+  function isValidAddress(addr) {
+    return typeof addr === 'string' && addr.trim().startsWith('https://www.google.com/maps?q=');
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -187,11 +193,58 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
           Išvalyti krepšelį
         </button>
         <button 
-          onClick={() => onSubmitOrder({ address, comment })}
+          onClick={() => {
+            if (!isValidAddress(address)) {
+              alert('Įveskite galiojantį Google Maps adresą prieš pateikdami užsakymą.');
+              return;
+            }
+            onSubmitOrder({ address, comment });
+          }}
           className="flex-1 bg-green-500 hover:bg-green-600 transition-colors rounded-xl p-4 text-white"
         >
           Patvirtinti užsakymą
         </button>
+        {window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openInvoice && (
+          <button
+            disabled={loadingPay}
+            onClick={async () => {
+              if (!isValidAddress(address)) {
+                alert('Įveskite galiojantį Google Maps adresą prieš mokėdami per Telegram.');
+                return;
+              }
+              setLoadingPay(true);
+              try {
+                // Call backend to create invoice and get slug
+                const res = await fetch('/api/create-telegram-invoice', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    items: cartItems.map(product => ({
+                      id: product.id,
+                      name: product.name,
+                      price: getProductTotal(product, cart[product.id]),
+                      qty: cart[product.id],
+                      emoji: product.emoji || ''
+                    })),
+                    total: baseTotal,
+                    address,
+                    comment
+                  })
+                });
+                const data = await res.json();
+                if (!data.slug) throw new Error('Nepavyko gauti sąskaitos iš Telegram');
+                window.Telegram.WebApp.openInvoice({ slug: data.slug });
+              } catch (e) {
+                alert('Nepavyko inicijuoti mokėjimo per Telegram: ' + (e.message || e));
+              } finally {
+                setLoadingPay(false);
+              }
+            }}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 transition-colors rounded-xl p-4 text-white"
+          >
+            {loadingPay ? 'Kraunama...' : 'Mokėti su Telegram'}
+          </button>
+        )}
       </div>
     </div>
   );
