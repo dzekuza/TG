@@ -871,7 +871,7 @@ function AdminChatPanel({ adminPassword }) {
 function ProductManagementPanel({ mainAdminPassword }) {
   const [products, setProducts] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', price_1: '', price_2: '', price_3: '', image_url: '', available: true });
+  const [form, setForm] = useState({ name: '', main_price: '', price_1: '', price_2: '', price_3: '', image_url: '', available: true });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [stats, setStats] = useState([]);
@@ -909,6 +909,7 @@ function ProductManagementPanel({ mainAdminPassword }) {
     setEditing(p.id);
     setForm({
       name: p.name,
+      main_price: p.price_1 || '',
       price_1: p.price_1 || '',
       price_2: p.price_2 || '',
       price_3: p.price_3 || '',
@@ -919,22 +920,27 @@ function ProductManagementPanel({ mainAdminPassword }) {
   };
   const handleCancel = () => {
     setEditing(null);
-    setForm({ name: '', price_1: '', price_2: '', price_3: '', image_url: '', available: true });
+    setForm({ name: '', main_price: '', price_1: '', price_2: '', price_3: '', image_url: '', available: true });
     setImagePreview('');
   };
   const handleSave = async () => {
     setLoading(true);
     setError('');
     try {
-      const method = editing ? 'PUT' : 'POST';
+      let { main_price, price_1, price_2, price_3, ...rest } = form;
+      main_price = main_price ? Number(main_price) : null;
+      price_1 = price_1 ? Number(price_1) : (main_price !== null ? main_price : null);
+      price_2 = price_2 ? Number(price_2) : (main_price !== null ? main_price * 2 * 0.95 : null);
+      price_3 = price_3 ? Number(price_3) : (main_price !== null ? main_price * 3 * 0.90 : null);
       const body = {
-        ...form,
-        price_1: form.price_1 ? Number(form.price_1) : null,
-        price_2: form.price_2 ? Number(form.price_2) : null,
-        price_3: form.price_3 ? Number(form.price_3) : null,
+        ...rest,
+        price_1,
+        price_2,
+        price_3,
         password: mainAdminPassword
       };
       if (editing) body.id = editing;
+      const method = editing ? 'PUT' : 'POST';
       const res = await fetch('/api/products', {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -1003,6 +1009,16 @@ function ProductManagementPanel({ mainAdminPassword }) {
           name="name"
           placeholder="Product name"
           value={form.name}
+          onChange={handleFormChange}
+        />
+        <input
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          name="main_price"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Main price (€)"
+          value={form.main_price}
           onChange={handleFormChange}
         />
         <div className="flex gap-2">

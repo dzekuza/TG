@@ -19,7 +19,14 @@ export default function App() {
         const res = await fetch('/api/products');
         const data = await res.json();
         if (data.products) {
-          setProducts(data.products.filter(p => p.available));
+          setProducts(
+            data.products
+              .filter(p => p.available)
+              .map(p => ({
+                ...p,
+                price: typeof p.price_1 === 'number' ? p.price_1 : Number(p.price_1) || 0
+              }))
+          );
         }
       } catch (e) {
         setProducts([]);

@@ -20,7 +20,16 @@ export function ProductCard({ product, quantity, onQuantityChange }) {
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
       <div className="flex flex-col items-start text-left">
         <div className="w-16 h-16 mb-3 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
-          <span className="text-2xl">{product.emoji}</span>
+          {product.image_url ? (
+            <img
+              src={product.image_url}
+              alt={product.name}
+              className="w-full h-full object-cover rounded-xl"
+              onError={e => { e.target.style.display = 'none'; }}
+            />
+          ) : (
+            <span className="text-2xl">{product.emoji}</span>
+          )}
         </div>
         <h3 className="mb-1 font-semibold text-base">{product.name}</h3>
         <div className="text-xl text-blue-600 mb-1">€{price1.toFixed(2)}</div>
