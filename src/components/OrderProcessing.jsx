@@ -1,5 +1,9 @@
 import { Trash2, MapPin } from 'lucide-react';
 import { useState } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { useRef } from 'react';
 
 // Helper to get price for a given quantity from price_ranges
 function getPriceForQuantity(price_ranges, quantity) {
@@ -8,12 +12,82 @@ function getPriceForQuantity(price_ranges, quantity) {
   return found ? found.price : 0;
 }
 
+const markerIcon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
+  shadowSize: [41, 41],
+});
+
+function LocationPicker({ show, onClose, onSelect, initialPosition }) {
+  const [position, setPosition] = useState(initialPosition || { lat: 54.6872, lng: 25.2797 });
+  function DraggableMarker() {
+    const markerRef = useRef(null);
+    useMapEvents({
+      dragend() {
+        const marker = markerRef.current;
+        if (marker != null) {
+          setPosition(marker.getLatLng());
+        }
+      },
+      click(e) {
+        setPosition(e.latlng);
+      }
+    });
+    return (
+      <Marker
+        draggable
+        eventHandlers={{ dragend: (e) => setPosition(e.target.getLatLng()) }}
+        position={position}
+        icon={markerIcon}
+        ref={markerRef}
+      />
+    );
+  }
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md relative">
+        <button className="absolute top-2 right-2 text-gray-500" onClick={onClose}>✕</button>
+        <h2 className="text-lg font-semibold mb-2">Pasirinkite vietą žemėlapyje</h2>
+        <div className="w-full h-72 rounded overflow-hidden mb-4">
+          <MapContainer center={position} zoom={15} style={{ height: '100%', width: '100%' }}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <DraggableMarker />
+          </MapContainer>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button className="bg-gray-200 px-4 py-2 rounded" onClick={onClose}>Atšaukti</button>
+          <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={() => onSelect(position)}>
+            Patvirtinti vietą
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function fetchAddressSuggestions(query) {
+  if (!query) return [];
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data;
+}
+
 export function OrderProcessing({ products, cart, onQuantityChange, onClearCart, onSubmitOrder }) {
   const [address, setAddress] = useState('');
   const [comment, setComment] = useState('');
   const [loadingPay, setLoadingPay] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const [showMap, setShowMap] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestTimeout, setSuggestTimeout] = useState(null);
+  const [coords, setCoords] = useState(null);
   const cartItems = products.filter(product => cart[product.id] > 0);
   const totalItems = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
   const totalQty = totalItems;
@@ -46,6 +120,20 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
   function isValidAddress(addr) {
     return typeof addr === 'string' && addr.trim().startsWith('https://www.google.com/maps?q=');
   }
+
+  // Address suggestion handler
+  const handleAddressChange = (e) => {
+    setAddress(e.target.value);
+    setCoords(null);
+    if (suggestTimeout) clearTimeout(suggestTimeout);
+    const val = e.target.value;
+    setSuggestTimeout(setTimeout(async () => {
+      setSuggestLoading(true);
+      const results = await fetchAddressSuggestions(val);
+      setSuggestions(results);
+      setSuggestLoading(false);
+    }, 400));
+  };
 
   if (cartItems.length === 0) {
     return (
@@ -136,50 +224,51 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
       {/* Address field with Google Maps and paste */}
       <div className="mb-6">
         <label className="block text-gray-700 mb-2">Pristatymo adresas</label>
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-2">
           <input
             type="text"
             className="flex-1 rounded-xl border border-gray-300 p-3 text-gray-800"
             placeholder="Įveskite adresą arba įklijuokite Google Maps nuorodą"
             value={address}
-            onChange={e => setAddress(e.target.value)}
+            onChange={handleAddressChange}
+            autoComplete="off"
           />
           <button
             type="button"
             className="px-3 py-2 rounded-xl bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition-colors whitespace-nowrap"
-            onClick={async () => {
-              setLocating(true);
-              setLocationError('');
-              if (!navigator.geolocation) {
-                setLocationError('Jūsų naršyklė nepalaiko geolokacijos');
-                setLocating(false);
-                return;
-              }
-              navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                  const lat = pos.coords.latitude;
-                  const lng = pos.coords.longitude;
-                  setAddress(`https://www.google.com/maps?q=${lat},${lng}`);
-                  setLocating(false);
-                },
-                (err) => {
-                  setLocationError('Nepavyko gauti lokacijos');
-                  setLocating(false);
-                }
-              );
-            }}
-            disabled={locating}
+            onClick={() => setShowMap(true)}
           >
-            {locating ? 'Gaunama...' : 'Gauti mano lokaciją'}
-          </button>
-          <button
-            type="button"
-            className="px-3 py-2 rounded-xl bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100 transition-colors whitespace-nowrap"
-            onClick={() => window.open('https://maps.google.com', '_blank')}
-          >
-            Atidaryti Google žemėlapius
+            Pasirinkti vietą
           </button>
         </div>
+        {suggestLoading && <div className="text-xs text-gray-500">Ieškoma...</div>}
+        {suggestions.length > 0 && (
+          <div className="bg-white border rounded shadow p-2 mt-1 max-h-40 overflow-y-auto">
+            {suggestions.map(s => (
+              <div
+                key={s.place_id}
+                className="p-2 hover:bg-blue-50 cursor-pointer rounded"
+                onClick={() => {
+                  setAddress(s.display_name);
+                  setCoords({ lat: parseFloat(s.lat), lng: parseFloat(s.lon) });
+                  setSuggestions([]);
+                }}
+              >
+                {s.display_name}
+              </div>
+            ))}
+          </div>
+        )}
+        <LocationPicker
+          show={showMap}
+          onClose={() => setShowMap(false)}
+          onSelect={pos => {
+            setCoords(pos);
+            setAddress(`https://www.google.com/maps?q=${pos.lat},${pos.lng}`);
+            setShowMap(false);
+          }}
+          initialPosition={coords}
+        />
         {locationError && <div className="text-red-600 text-xs mt-1">{locationError}</div>}
         {/* Show warning if pasted address is a short Google Maps URL */}
         {address.startsWith('https://goo.gl/maps') && (

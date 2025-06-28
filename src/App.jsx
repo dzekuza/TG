@@ -108,7 +108,8 @@ export default function App() {
           name: product.name,
           price: getProductTotal(product, cart[product.id]), // total for this qty
           qty: cart[product.id],
-          emoji: product.emoji || ''
+          emoji: product.emoji || '',
+          image_url: product.image_url || ''
         })),
         total: cartItems.reduce((sum, product) => sum + getProductTotal(product, cart[product.id]), 0)
       };

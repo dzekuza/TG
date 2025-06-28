@@ -194,6 +194,7 @@ export function OptimizedRoute({ adminPassword }) {
 
   if (loading) return <div className="text-center py-12">Kraunama...</div>;
   if (error) return <div className="text-center text-red-600 py-12">{error}</div>;
+  if (stops.length === 0) return <div className="text-center py-12 text-gray-500">No active deliveries</div>;
 
   return (
     <div className="p-2 pb-16">

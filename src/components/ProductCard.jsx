@@ -45,8 +45,8 @@ export function ProductCard({ product, quantity, onQuantityChange, hideQuantityC
             product.price_ranges.map((r, idx) => (
               <span key={idx}>
                 {r.min === r.max
-                  ? `${r.min} vnt: €${r.price.toFixed(2)}`
-                  : `${r.min}-${r.max} vnt: €${r.price.toFixed(2)}`
+                  ? `${r.min} vnt: €${r.price.toFixed(2)}/vnt`
+                  : `${r.min}-${r.max} vnt: €${r.price.toFixed(2)}/vnt`
                 }{idx < product.price_ranges.length - 1 ? ', ' : ''}
               </span>
             ))

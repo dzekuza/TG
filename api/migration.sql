@@ -63,3 +63,23 @@ CREATE TABLE IF NOT EXISTS products (
 -- Example migration for existing data (if needed):
 -- For each product, convert price_1, price_2, price_3 to price_ranges JSONB
 -- This step should be done in a separate migration script or manually if needed.
+
+-- Enable Row Level Security and policies for user CRUD on orders
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to insert their own orders
+CREATE POLICY user_insert_order ON orders
+  FOR INSERT
+  WITH CHECK (user_id = current_setting('app.current_user_id', true));
+
+-- Allow users to update their own orders
+CREATE POLICY user_update_order ON orders
+  FOR UPDATE
+  USING (user_id = current_setting('app.current_user_id', true));
+
+-- Allow users to delete their own orders
+CREATE POLICY user_delete_order ON orders
+  FOR DELETE
+  USING (user_id = current_setting('app.current_user_id', true));
+
+-- (Admins can be handled with a separate policy or bypass RLS as needed)
