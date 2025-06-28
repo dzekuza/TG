@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Clock, MessageSquare, MapPin, Calendar, CheckCircle, AlertCircle, Package, Truck, RefreshCw, Users, Inbox } from 'lucide-react';
 import { DataTable } from './components/ui/data-table';
 import { ProductCard } from './components/ProductCard';
+import { OptimizedRoute } from './components/OptimizedRoute';
 
 const getStatusConfig = (status) => {
   switch (status) {
@@ -67,6 +68,20 @@ const formatDate = (dateString) => {
     minute: '2-digit'
   });
 };
+
+// Helper to format relative time
+function formatRelativeTime(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'dabar';
+  if (diffMins < 60) return `${diffMins} min ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} d ago`;
+}
 
 export default function AdminApp() {
   const [orders, setOrders] = useState([]);
@@ -287,7 +302,6 @@ export default function AdminApp() {
                       ? parsed.map(i => {
                           const name = i.name || i.meal || '';
                           const qty = i.qty ? ` x${i.qty}` : '';
-                          // Avoid duplicate 'x' if already present
                           return `${i.emoji ? i.emoji + ' ' : ''}${name}${name.includes('x') ? '' : qty}`;
                         }).join('\n')
                       : order.items;
@@ -297,16 +311,14 @@ export default function AdminApp() {
 
                   return (
                     <div key={order.order_id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border mb-1 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
-                            {statusConfig.icon}
-                            <span className="text-sm font-medium">{statusConfig.label}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-gray-500 text-sm">
-                            <Calendar className="w-4 h-4" />
-                            <span>{formatDate(order.created_at)}</span>
-                          </div>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-1 text-gray-500 text-sm">
+                          <Clock className="w-4 h-4" />
+                          <span>{formatRelativeTime(order.created_at)}</span>
+                        </div>
+                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor} ml-auto`}>
+                          {statusConfig.icon}
+                          <span className="text-sm font-medium">{statusConfig.label}</span>
                         </div>
                       </div>
 
@@ -500,7 +512,7 @@ export default function AdminApp() {
           <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
             <div className="bg-white rounded-xl shadow p-6 w-full max-w-2xl">
               <h3 className="text-lg font-semibold mb-4">Maršruto optimizavimas</h3>
-              <RouteOptimizerPanel orders={orders} />
+              <OptimizedRoute />
             </div>
           </div>
         )}
@@ -1149,155 +1161,6 @@ function ProductStatsGraph({ stats, period }) {
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function RouteOptimizerPanel({ orders }) {
-  const [route, setRoute] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [etaMap, setEtaMap] = useState({});
-  const [driverLocation, setDriverLocation] = useState(null);
-  const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState('');
-
-  // Helper: filter active orders
-  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'arriving');
-
-  // Helper: parse lat/lng from order location
-  function parseLatLng(location) {
-    try {
-      if (typeof location === 'string') location = JSON.parse(location);
-    } catch {}
-    if (location.lat && location.lng) return [Number(location.lat), Number(location.lng)];
-    if (location.manual && typeof location.manual === 'string') {
-      const match = location.manual.match(/@([\d.\-]+),([\d.\-]+)/) || location.manual.match(/q=([\d.\-]+),([\d.\-]+)/);
-      if (match) return [Number(match[1]), Number(match[2])];
-    }
-    return null;
-  }
-
-  const handleFetchLocation = () => {
-    setLocating(true); setError(''); setLocationError('');
-    if (!navigator.geolocation) {
-      setLocationError('Jūsų naršyklė nepalaiko geolokacijos');
-      setLocating(false);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setDriverLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocating(false);
-      },
-      (err) => {
-        setLocationError('Nepavyko gauti lokacijos');
-        setLocating(false);
-      }
-    );
-  };
-
-  const handleOptimize = async () => {
-    setLoading(true); setError(''); setRoute([]); setEtaMap({});
-    if (!driverLocation) {
-      setError('Pirma gaukite savo lokaciją');
-      setLoading(false);
-      return;
-    }
-    const order_ids = activeOrders.map(o => o.order_id);
-    if (!order_ids.length) {
-      setError('No active orders to optimize');
-      setLoading(false);
-      return;
-    }
-    try {
-      // 2. Call backend to get optimal route and ETAs
-      const res = await fetch('/api/optimize-route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_ids,
-          driver_location: driverLocation
-        })
-      });
-      const data = await res.json();
-      if (!data.route) {
-        setError('No route found');
-        setLoading(false);
-        return;
-      }
-      setRoute(data.route);
-      // 3. Use Google-provided ETAs
-      const etaMapNew = {};
-      data.route.forEach((order_id, idx) => {
-        etaMapNew[order_id] = data.etas && data.etas[idx] ? data.etas[idx] : '';
-      });
-      setEtaMap(etaMapNew);
-      // 4. Update each order's ETA in backend
-      for (const [idx, order_id] of data.route.entries()) {
-        const etaVal = etaMapNew[order_id];
-        const order = activeOrders.find(o => o.order_id === order_id);
-        if (!order) continue;
-        await fetch('/api/admin-orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            order_id,
-            status: order.status,
-            comment: order.comment,
-            eta: String(etaVal),
-            driver_location: JSON.stringify(parseLatLng(order.location)),
-            admin_note: order.admin_note,
-            user_id: order.user_id
-          })
-        });
-      }
-    } catch (e) {
-      setError('Failed to optimize route');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div>
-      <div className="mb-4 flex flex-col gap-2">
-        <button
-          className="bg-gray-200 text-gray-800 px-4 py-2 rounded font-semibold mb-2"
-          onClick={handleFetchLocation}
-          disabled={locating}
-        >{locating ? 'Gaunama lokacija...' : (driverLocation ? 'Lokacija gauta' : 'Gauti mano lokaciją')}</button>
-        {driverLocation && (
-          <a
-            href={`https://www.google.com/maps?q=${driverLocation.lat},${driverLocation.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-700 underline text-xs mb-2"
-          >
-            Atidaryti mano lokaciją Google Maps
-          </a>
-        )}
-        {locationError && <div className="text-red-600 text-xs mb-1">{locationError}</div>}
-        <button
-          className="mt-2 bg-blue-600 text-white px-4 py-2 rounded font-semibold disabled:opacity-50"
-          onClick={handleOptimize}
-          disabled={loading || !activeOrders.length || !driverLocation}
-        >Optimize Route</button>
-      </div>
-      {driverLocation && <div className="text-xs text-green-700 mb-2">Lokacija: {driverLocation.lat.toFixed(5)}, {driverLocation.lng.toFixed(5)}</div>}
-      {loading && <div className="text-blue-600">Calculating...</div>}
-      {error && <div className="text-red-600 mb-2 font-semibold">{error}</div>}
-      {route.length > 0 && (
-        <div className="mt-4">
-          <h4 className="font-semibold mb-2">Recommended Delivery Order:</h4>
-          <ol className="list-decimal ml-6">
-            {route.map((order_id, idx) => {
-              const o = activeOrders.find(x => x.order_id === order_id);
-              return <li key={order_id} className="mb-2"><span className="font-mono text-xs">{order_id}</span> {o && o.location && <span className="text-xs text-gray-700">{typeof o.location === 'string' ? o.location.slice(0, 30) : JSON.stringify(o.location).slice(0, 30)}</span>} {etaMap[order_id] && <span className="ml-2 text-green-700">ETA: {etaMap[order_id]} min</span>}</li>;
-            })}
-          </ol>
-        </div>
-      )}
     </div>
   );
 } 

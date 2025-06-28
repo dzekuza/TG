@@ -172,8 +172,21 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
           >
             {locating ? 'Gaunama...' : 'Gauti mano lokaciją'}
           </button>
+          <button
+            type="button"
+            className="px-3 py-2 rounded-xl bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100 transition-colors whitespace-nowrap"
+            onClick={() => window.open('https://maps.google.com', '_blank')}
+          >
+            Atidaryti Google žemėlapius
+          </button>
         </div>
         {locationError && <div className="text-red-600 text-xs mt-1">{locationError}</div>}
+        {/* Show warning if pasted address is a short Google Maps URL */}
+        {address.startsWith('https://goo.gl/maps') && (
+          <div className="text-yellow-700 text-xs mt-1">
+            Įklijuotas Google Maps nuoroda yra sutrumpinta. Prašome nukopijuoti pilną nuorodą su koordinatėmis (pvz., ilgai paspauskite ant žemėlapio ir pasirinkite "Kopijuoti nuorodą su koordinatėmis").
+          </div>
+        )}
       </div>
 
       {/* Comments area */}
