@@ -1,5 +1,11 @@
 import { Minus, Plus } from 'lucide-react';
 
+function getPriceForQuantity(price_ranges, quantity) {
+  if (!Array.isArray(price_ranges)) return 0;
+  const found = price_ranges.find(r => quantity >= r.min && quantity <= r.max);
+  return found ? found.price : 0;
+}
+
 export function ProductCard({ product, quantity, onQuantityChange }) {
   const handleDecrease = () => {
     if (quantity > 0) {
@@ -11,17 +17,9 @@ export function ProductCard({ product, quantity, onQuantityChange }) {
     onQuantityChange(product.id, quantity + 1);
   };
 
-  // Use admin-set prices for 1, 2, 3 pieces
-  const price1 = typeof product.price_1 === 'number' ? product.price_1 : Number(product.price_1) || 0;
-  const price2 = typeof product.price_2 === 'number' ? product.price_2 : Number(product.price_2) || price1 * 2;
-  const price3 = typeof product.price_3 === 'number' ? product.price_3 : Number(product.price_3) || price1 * 3;
-
-  // Calculate total based on quantity
-  let total = 0;
-  if (quantity === 1) total = price1;
-  else if (quantity === 2) total = price2;
-  else if (quantity === 3) total = price3;
-  else if (quantity > 3) total = price1 * quantity;
+  // Calculate price for current quantity
+  const price = getPriceForQuantity(product.price_ranges, quantity || 1);
+  const total = price * quantity;
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -39,9 +37,18 @@ export function ProductCard({ product, quantity, onQuantityChange }) {
           )}
         </div>
         <h3 className="mb-1 font-semibold text-base">{product.name}</h3>
-        <div className="text-xl text-blue-600 mb-1">€{price1.toFixed(2)}</div>
+        <div className="text-xl text-blue-600 mb-1">€{getPriceForQuantity(product.price_ranges, 1).toFixed(2)}</div>
         <div className="text-xs text-gray-500 mb-2">
-          2 vnt: €{price2.toFixed(2)}, 3 vnt: €{price3.toFixed(2)}
+          {Array.isArray(product.price_ranges) && product.price_ranges.length > 0 && (
+            product.price_ranges.map((r, idx) => (
+              <span key={idx}>
+                {r.min === r.max
+                  ? `${r.min} vnt: €${r.price.toFixed(2)}`
+                  : `${r.min}-${r.max} vnt: €${r.price.toFixed(2)}`
+                }{idx < product.price_ranges.length - 1 ? ', ' : ''}
+              </span>
+            ))
+          )}
         </div>
         <div className="flex items-center gap-3 mb-2">
           <button

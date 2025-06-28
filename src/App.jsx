@@ -71,16 +71,17 @@ export default function App() {
     setCart({});
   };
 
+  // Helper to get price for a given quantity from price_ranges
+  function getPriceForQuantity(price_ranges, quantity) {
+    if (!Array.isArray(price_ranges)) return 0;
+    const found = price_ranges.find(r => quantity >= r.min && quantity <= r.max);
+    return found ? found.price : 0;
+  }
+
   // Helper to calculate total for a product and quantity (same as in OrderProcessing)
   function getProductTotal(product, qty) {
-    const price1 = typeof product.price_1 === 'number' ? product.price_1 : Number(product.price_1) || 0;
-    const price2 = typeof product.price_2 === 'number' ? product.price_2 : Number(product.price_2) || price1 * 2;
-    const price3 = typeof product.price_3 === 'number' ? product.price_3 : Number(product.price_3) || price1 * 3;
-    if (qty === 1) return price1;
-    if (qty === 2) return price2;
-    if (qty === 3) return price3;
-    if (qty > 3) return price1 * qty;
-    return 0;
+    const price = getPriceForQuantity(product.price_ranges, qty);
+    return price * qty;
   }
 
   const handleSubmitOrder = async ({ address, comment } = {}) => {

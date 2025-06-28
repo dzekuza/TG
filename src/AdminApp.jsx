@@ -547,8 +547,117 @@ export default function AdminApp() {
             </div>
             {/* Product management */}
             <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl mb-8">
-              <h3 className="text-lg font-semibold mb-2">Produktų valdymas</h3>
-              <ProductManagementPanel />
+              <h2 className="text-xl font-semibold mb-4">Produktų valdymas</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                {products.map(product => (
+                  <div key={product.id} className="relative group">
+                    <ProductCard product={product} quantity={0} onQuantityChange={() => {}} />
+                    <button
+                      className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs opacity-90 group-hover:opacity-100"
+                      onClick={() => { setEditing(product.id); setShowModal(true); handleEdit(product); }}
+                    >Redaguoti</button>
+                    <button
+                      className="absolute bottom-2 right-2 bg-gray-700 text-white px-2 py-1 rounded text-xs opacity-80 group-hover:opacity-100"
+                      onClick={() => setShowStats(product)}
+                    >Statistika</button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center mb-8">
+                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={() => { setEditing(null); setForm({ name: '', price_ranges: [{ price: '', min: '', max: '' }], image_url: '', available: true }); setImagePreview(''); setShowModal(true); }}>
+                  + Pridėti naują
+                </button>
+              </div>
+              {/* Slide-in modal for add/edit */}
+              {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => { setShowModal(false); handleCancel(); }}>
+                  <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto animate-slide-in-up" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-lg font-semibold mb-4">{editing ? 'Redaguoti produktą' : 'Pridėti naują produktą'}</h3>
+                    <div className="mb-4 flex flex-col gap-3">
+                      <input
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        name="name"
+                        placeholder="Product name"
+                        value={form.name}
+                        onChange={handleFormChange}
+                      />
+                      <div className="flex flex-col gap-2">
+                        {form.price_ranges.map((range, idx) => (
+                          <div className="flex gap-2 items-center" key={idx}>
+                            <input
+                              className="w-1/3 px-2 py-2 border border-gray-300 rounded-lg"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Price (€)"
+                              value={range.price}
+                              onChange={e => handlePriceRangeChange(idx, 'price', e.target.value)}
+                            />
+                            <input
+                              className="w-1/4 px-2 py-2 border border-gray-300 rounded-lg"
+                              type="number"
+                              min="1"
+                              step="1"
+                              placeholder="Min q."
+                              value={range.min}
+                              onChange={e => handlePriceRangeChange(idx, 'min', e.target.value)}
+                            />
+                            <input
+                              className="w-1/4 px-2 py-2 border border-gray-300 rounded-lg"
+                              type="number"
+                              min="1"
+                              step="1"
+                              placeholder="Max q."
+                              value={range.max}
+                              onChange={e => handlePriceRangeChange(idx, 'max', e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="text-red-500 text-lg px-2"
+                              onClick={() => handleRemovePriceRange(idx)}
+                              disabled={form.price_ranges.length === 1}
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          className="text-blue-600 text-sm mt-1 self-start"
+                          onClick={handleAddPriceRange}
+                        >
+                          + Add more
+                        </button>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="block"
+                          onChange={handleImageChange}
+                        />
+                        {imagePreview && <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />}
+                      </div>
+                      <label className="flex items-center gap-1 text-xs">
+                        <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} /> Available
+                      </label>
+                      {error && <div className="text-red-600 text-xs mt-1">{error}</div>}
+                    </div>
+                    <button className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={handleSave} disabled={loading}>{editing ? 'Išsaugoti pakeitimus' : 'Išsaugoti'}</button>
+                    <button className="mt-2 w-full text-gray-500 hover:underline" onClick={() => { setShowModal(false); handleCancel(); }}>Atšaukti</button>
+                  </div>
+                </div>
+              )}
+              {/* Modal for product stats */}
+              {showStats && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => setShowStats(null)}>
+                  <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto animate-slide-in-up" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-lg font-semibold mb-4">Statistika: {showStats.name}</h3>
+                    <div>Produktas parduotas: <span className="font-bold">{stats.find(s => s.name === showStats.name)?.count || 0}</span> vnt.</div>
+                    <button className="mt-4 w-full text-gray-500 hover:underline" onClick={() => setShowStats(null)}>Uždaryti</button>
+                  </div>
+                </div>
+              )}
             </div>
             {/* Admin user management */}
             <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
@@ -824,7 +933,7 @@ function AdminChatPanel({ adminPassword }) {
 function ProductManagementPanel() {
   const [products, setProducts] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', main_price: '', price_1: '', price_2: '', price_3: '', image_url: '', available: true });
+  const [form, setForm] = useState({ name: '', price_ranges: [{ price: '', min: '', max: '' }], image_url: '', available: true });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [stats, setStats] = useState([]);
@@ -860,14 +969,23 @@ function ProductManagementPanel() {
     const { name, value, type, checked } = e.target;
     setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
   };
+  const handlePriceRangeChange = (idx, field, value) => {
+    setForm(f => {
+      const ranges = f.price_ranges.map((r, i) => i === idx ? { ...r, [field]: value } : r);
+      return { ...f, price_ranges: ranges };
+    });
+  };
+  const handleAddPriceRange = () => {
+    setForm(f => ({ ...f, price_ranges: [...f.price_ranges, { price: '', min: '', max: '' }] }));
+  };
+  const handleRemovePriceRange = idx => {
+    setForm(f => ({ ...f, price_ranges: f.price_ranges.filter((_, i) => i !== idx) }));
+  };
   const handleEdit = p => {
     setEditing(p.id);
     setForm({
       name: p.name,
-      main_price: p.price_1 || '',
-      price_1: p.price_1 || '',
-      price_2: p.price_2 || '',
-      price_3: p.price_3 || '',
+      price_ranges: Array.isArray(p.price_ranges) ? p.price_ranges : [],
       image_url: p.image_url || '',
       available: p.available
     });
@@ -875,23 +993,22 @@ function ProductManagementPanel() {
   };
   const handleCancel = () => {
     setEditing(null);
-    setForm({ name: '', main_price: '', price_1: '', price_2: '', price_3: '', image_url: '', available: true });
+    setForm({ name: '', price_ranges: [{ price: '', min: '', max: '' }], image_url: '', available: true });
     setImagePreview('');
   };
   const handleSave = async () => {
     setLoading(true);
     setError('');
     try {
-      let { main_price, price_1, price_2, price_3, ...rest } = form;
-      main_price = main_price ? Number(main_price) : null;
-      price_1 = price_1 ? Number(price_1) : (main_price !== null ? main_price : null);
-      price_2 = price_2 ? Number(price_2) : (main_price !== null ? main_price * 2 * 0.95 : null);
-      price_3 = price_3 ? Number(price_3) : (main_price !== null ? main_price * 3 * 0.90 : null);
+      const { name, price_ranges, image_url, available } = form;
+      // Validate price_ranges
+      const validRanges = price_ranges.filter(r => r.price && r.min && r.max);
+      if (!name || validRanges.length === 0) throw new Error('Name and at least one valid price range required');
       const body = {
-        ...rest,
-        price_1,
-        price_2,
-        price_3,
+        name,
+        price_ranges: validRanges.map(r => ({ price: Number(r.price), min: Number(r.min), max: Number(r.max) })),
+        image_url,
+        available,
       };
       if (editing) body.id = editing;
       const method = editing ? 'PUT' : 'POST';
@@ -903,8 +1020,8 @@ function ProductManagementPanel() {
       if (!res.ok) throw new Error('Failed to save');
       fetchProducts();
       handleCancel();
-    } catch {
-      setError('Error saving product');
+    } catch (err) {
+      setError(err.message || 'Error saving product');
     } finally {
       setLoading(false);
     }
@@ -983,7 +1100,7 @@ function ProductManagementPanel() {
             <ProductCard product={product} quantity={0} onQuantityChange={() => {}} />
             <button
               className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs opacity-90 group-hover:opacity-100"
-              onClick={() => setEditing(product.id)}
+              onClick={() => { setEditing(product.id); setShowModal(true); handleEdit(product); }}
             >Redaguoti</button>
             <button
               className="absolute bottom-2 right-2 bg-gray-700 text-white px-2 py-1 rounded text-xs opacity-80 group-hover:opacity-100"
@@ -992,11 +1109,16 @@ function ProductManagementPanel() {
           </div>
         ))}
       </div>
+      <div className="flex justify-center mb-8">
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={() => { setEditing(null); setForm({ name: '', price_ranges: [{ price: '', min: '', max: '' }], image_url: '', available: true }); setImagePreview(''); setShowModal(true); }}>
+          + Pridėti naują
+        </button>
+      </div>
       {/* Slide-in modal for add/edit */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => setShowModal(false)}>
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => { setShowModal(false); handleCancel(); }}>
           <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto animate-slide-in-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">Pridėti naują produktą</h3>
+            <h3 className="text-lg font-semibold mb-4">{editing ? 'Redaguoti produktą' : 'Pridėti naują produktą'}</h3>
             <div className="mb-4 flex flex-col gap-3">
               <input
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -1005,47 +1127,53 @@ function ProductManagementPanel() {
                 value={form.name}
                 onChange={handleFormChange}
               />
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                name="main_price"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="Main price (€)"
-                value={form.main_price}
-                onChange={handleFormChange}
-              />
-              <div className="flex gap-2">
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  name="price_1"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Price for 1 piece (€)"
-                  value={form.price_1}
-                  onChange={handleFormChange}
-                />
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  name="price_2"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Price for 2 pieces (€)"
-                  value={form.price_2}
-                  onChange={handleFormChange}
-                />
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  name="price_3"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Price for 3 pieces (€)"
-                  value={form.price_3}
-                  onChange={handleFormChange}
-                />
+              <div className="flex flex-col gap-2">
+                {form.price_ranges.map((range, idx) => (
+                  <div className="flex gap-2 items-center" key={idx}>
+                    <input
+                      className="w-1/3 px-2 py-2 border border-gray-300 rounded-lg"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Price (€)"
+                      value={range.price}
+                      onChange={e => handlePriceRangeChange(idx, 'price', e.target.value)}
+                    />
+                    <input
+                      className="w-1/4 px-2 py-2 border border-gray-300 rounded-lg"
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="Min q."
+                      value={range.min}
+                      onChange={e => handlePriceRangeChange(idx, 'min', e.target.value)}
+                    />
+                    <input
+                      className="w-1/4 px-2 py-2 border border-gray-300 rounded-lg"
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="Max q."
+                      value={range.max}
+                      onChange={e => handlePriceRangeChange(idx, 'max', e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="text-red-500 text-lg px-2"
+                      onClick={() => handleRemovePriceRange(idx)}
+                      disabled={form.price_ranges.length === 1}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="text-blue-600 text-sm mt-1 self-start"
+                  onClick={handleAddPriceRange}
+                >
+                  + Add more
+                </button>
               </div>
               <div className="flex gap-2 items-center">
                 <input
@@ -1059,15 +1187,10 @@ function ProductManagementPanel() {
               <label className="flex items-center gap-1 text-xs">
                 <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} /> Available
               </label>
+              {error && <div className="text-red-600 text-xs mt-1">{error}</div>}
             </div>
-            <div className="flex gap-2">
-              <button
-                className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold"
-                onClick={handleSave}
-                disabled={loading || !form.name || !form.price_1}
-              >Išsaugoti</button>
-              <button className="mt-2 w-full text-gray-500 hover:underline" onClick={() => setShowModal(false)}>Atšaukti</button>
-            </div>
+            <button className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={handleSave} disabled={loading}>{editing ? 'Išsaugoti pakeitimus' : 'Išsaugoti'}</button>
+            <button className="mt-2 w-full text-gray-500 hover:underline" onClick={() => { setShowModal(false); handleCancel(); }}>Atšaukti</button>
           </div>
         </div>
       )}

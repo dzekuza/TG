@@ -1,7 +1,17 @@
 // api/admin-orders.js
 import { query } from './db.js';
 
+async function isAdmin(user_id) {
+  if (!user_id) return false;
+  const res = await query('SELECT 1 FROM admin_users WHERE user_id = $1', [user_id]);
+  return res.rows.length > 0;
+}
+
 export default async function handler(req, res) {
+  let user_id = req.body?.user_id || req.query?.user_id;
+  if (!(await isAdmin(user_id))) {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
   if (req.method === 'GET') {
     // List all orders, newest first
     const { rows } = await query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 50');

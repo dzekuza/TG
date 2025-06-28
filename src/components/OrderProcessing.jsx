@@ -1,6 +1,13 @@
 import { Trash2, MapPin } from 'lucide-react';
 import { useState } from 'react';
 
+// Helper to get price for a given quantity from price_ranges
+function getPriceForQuantity(price_ranges, quantity) {
+  if (!Array.isArray(price_ranges)) return 0;
+  const found = price_ranges.find(r => quantity >= r.min && quantity <= r.max);
+  return found ? found.price : 0;
+}
+
 export function OrderProcessing({ products, cart, onQuantityChange, onClearCart, onSubmitOrder }) {
   const [address, setAddress] = useState('');
   const [comment, setComment] = useState('');
@@ -9,16 +16,10 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
   const totalItems = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
   const totalQty = totalItems;
 
-  // Calculate total using admin-set prices for 1, 2, 3 pieces
+  // Calculate total using admin-set price ranges
   const getProductTotal = (product, qty) => {
-    const price1 = typeof product.price_1 === 'number' ? product.price_1 : Number(product.price_1) || 0;
-    const price2 = typeof product.price_2 === 'number' ? product.price_2 : Number(product.price_2) || price1 * 2;
-    const price3 = typeof product.price_3 === 'number' ? product.price_3 : Number(product.price_3) || price1 * 3;
-    if (qty === 1) return price1;
-    if (qty === 2) return price2;
-    if (qty === 3) return price3;
-    if (qty > 3) return price1 * qty;
-    return 0;
+    const price = getPriceForQuantity(product.price_ranges, qty);
+    return price * qty;
   };
   const baseTotal = cartItems.reduce((sum, product) => sum + getProductTotal(product, cart[product.id]), 0);
 

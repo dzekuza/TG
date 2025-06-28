@@ -46,15 +46,20 @@ CREATE TABLE IF NOT EXISTS admin_messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Remove old products table if exists
 DROP TABLE IF EXISTS products;
+
+-- Create new products table with price_ranges
 CREATE TABLE IF NOT EXISTS products (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
-  price_1 NUMERIC NOT NULL,
-  price_2 NUMERIC,
-  price_3 NUMERIC,
+  price_ranges JSONB NOT NULL,
   image_url TEXT,
   available BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Example migration for existing data (if needed):
+-- For each product, convert price_1, price_2, price_3 to price_ranges JSONB
+-- This step should be done in a separate migration script or manually if needed.
