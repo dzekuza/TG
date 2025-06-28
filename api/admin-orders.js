@@ -10,8 +10,8 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    // List all orders, newest first
-    const { rows } = await query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 50');
+    // List all non-deleted orders, newest first
+    const { rows } = await query('SELECT * FROM orders WHERE deleted IS NOT TRUE ORDER BY created_at DESC LIMIT 50');
     // Fetch admin notes for all user_ids
     const userIds = [...new Set(rows.map(r => r.user_id))];
     let notes = {};
