@@ -201,7 +201,7 @@ export default function AdminApp() {
   };
 
   const handleEtaHotkey = async (order, minutes) => {
-    await updateOrderStatus(order.order_id, order.status, order.comment, String(minutes), order.driver_location, userNotes[order.user_id], order.user_id, order.status);
+    await updateOrderStatus(order.order_id, order.status, order.comment, String(minutes), order.driver_location, userNotes[order.user_id], order.user_id, order.status === 'pending' ? 'pending' : order.status);
   };
 
   const removeOrder = async (orderId) => {
@@ -444,7 +444,7 @@ export default function AdminApp() {
                             placeholder="e.g., 15"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             defaultValue={order.eta || ''}
-                            onBlur={e => updateOrderStatus(order.order_id, order.status, order.comment, e.target.value, order.driver_location, userNotes[order.user_id], order.user_id, order.status)}
+                            onBlur={e => updateOrderStatus(order.order_id, order.status, order.comment, e.target.value, order.driver_location, userNotes[order.user_id], order.user_id, order.status === 'pending' ? 'pending' : order.status)}
                           />
                         </div>
                       </div>
