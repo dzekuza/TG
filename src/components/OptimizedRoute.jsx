@@ -72,8 +72,8 @@ export function OptimizedRoute({ adminPassword }) {
   const intervalRef = useRef();
 
   // Fetch orders
-  const fetchOrders = async () => {
-    setLoading(true);
+  const fetchOrders = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     setError('');
     try {
       const res = await fetch(`/api/admin-orders?password=${encodeURIComponent(adminPassword)}`);
@@ -83,23 +83,22 @@ export function OptimizedRoute({ adminPassword }) {
     } catch (e) {
       setError('Error loading orders');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Poll for new orders every 10s
+  // Poll for new orders every 10s (no loading spinner)
   useEffect(() => {
-    fetchOrders();
-    intervalRef.current = setInterval(fetchOrders, 10000);
+    fetchOrders(true); // initial load with spinner
+    intervalRef.current = setInterval(() => fetchOrders(false), 10000);
     return () => clearInterval(intervalRef.current);
-    // eslint-disable-next-line
   }, [adminPassword]);
 
   // Manual refresh
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchOrders();
+    fetchOrders(true);
   };
 
   // Get driver location
@@ -223,7 +222,7 @@ export function OptimizedRoute({ adminPassword }) {
               {index < stops.length - 1 && (
                 <div className={`absolute left-5 top-12 w-0.5 h-16 ${stop.status === 'delivered' ? 'bg-green-200' : 'bg-gray-200'}`}></div>
               )}
-              <div className={`bg-white rounded-2xl p-4 shadow-sm border ${isActive ? 'border-orange-200 ring-2 ring-orange-100' : 'border-gray-100'}`}> 
+              <div className={`bg-white rounded-2xl p-4 shadow-sm border ${isActive ? 'border-orange-200 ring-2 ring-orange-100' : 'border-gray-100'} w-full max-w-full overflow-x-auto`}> 
                 <div className="flex items-start gap-4">
                   <div className="flex flex-col items-center gap-2">
                     <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${stop.status === 'delivered' ? 'bg-green-100 border-green-300 text-green-700' : isActive ? 'bg-orange-100 border-orange-300 text-orange-700' : 'bg-gray-100 border-gray-300 text-gray-700'}`}>{stop.status === 'delivered' ? (<CheckCircle className="w-5 h-5" />) : (<span>{index + 1}</span>)}</div>
@@ -235,13 +234,13 @@ export function OptimizedRoute({ adminPassword }) {
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="text-gray-900">{stop.customerName || stop.user_id || stop.order_id}</h4>
                         </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
+                        <div className="flex items-center gap-1 text-sm text-gray-600 mb-1 flex-wrap break-all">
                           <MapPin className="w-3 h-3" />
-                          <span>{stop.address || (loc ? `${loc.lat},${loc.lng}` : '-')}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
-                          <Phone className="w-3 h-3" />
-                          <span>{stop.phoneNumber || '-'}</span>
+                          {loc ? (
+                            <span className="font-mono select-all" title="Copy coordinates">{loc.lat},{loc.lng}</span>
+                          ) : (
+                            <span>-</span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">
