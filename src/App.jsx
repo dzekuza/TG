@@ -82,7 +82,14 @@ export default function App() {
         meal: cartItems.map(product => `${product.name} x${cart[product.id]}`).join(', '),
         user: user,
         location: address ? { manual: address } : { lat: 0, lng: 0 },
-        comment: comment || ''
+        comment: comment || '',
+        items: cartItems.map(product => ({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          qty: cart[product.id],
+          emoji: product.emoji || ''
+        }))
       };
 
       const response = await fetch('/api/order', {
