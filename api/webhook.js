@@ -14,13 +14,26 @@ async function getOrder(orderId) {
   return rows[0] || null;
 }
 
+// Helper to check if user is admin
+async function isAdmin(userId) {
+  if (String(userId) === '406266417') return true;
+  const { rows } = await query('SELECT 1 FROM admin_users WHERE user_id = $1', [userId]);
+  return rows.length > 0;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   const body = req.body;
+  // Check admin for callback_query
   if (body.callback_query) {
     const cb = body.callback_query;
+    const fromId = cb.from && cb.from.id;
+    if (!await isAdmin(fromId)) {
+      res.send({ ok: true });
+      return;
+    }
     const data = cb.data;
     if (data.startsWith('calc_eta_')) {
       const [, orderId, lat, lng] = data.split('_');
@@ -174,6 +187,14 @@ export default async function handler(req, res) {
     }
     res.send({ ok: true });
     return;
+  }
+  // Check admin for normal message
+  if (body.message && body.message.from && body.message.from.id) {
+    const fromId = body.message.from.id;
+    if (!await isAdmin(fromId)) {
+      res.send({ ok: true });
+      return;
+    }
   }
   // Handle location message from driver
   if (body.message && body.message.location && body.message.chat && body.message.chat.id == process.env.ADMIN_CHAT_ID) {
