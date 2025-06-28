@@ -85,13 +85,13 @@ export default function App() {
 
   const handleSubmitOrder = async ({ address, comment } = {}) => {
     if (!user) {
-      alert('Please log in to place an order');
+      alert('Prisijunkite prie Telegram, kad galėtumėte pateikti užsakymą');
       return;
     }
 
     const cartItems = products.filter(product => cart[product.id] > 0);
     if (cartItems.length === 0) {
-      alert('Please add at least one item to your cart');
+      alert('Į krepšelį pridėkite bent vieną prekę');
       return;
     }
 
@@ -121,17 +121,17 @@ export default function App() {
       const result = await response.json();
       
       if (result.success) {
-        alert('Order placed successfully!');
+        alert('Užsakymas sėkmingai pateiktas!');
         setCart({});
         // Reload past orders
         loadPastOrders(user.id);
         setActiveTab('history');
       } else {
-        alert('Failed to place order. Please try again.');
+        alert('Nepavyko pateikti užsakymo. Bandykite dar kartą.');
       }
     } catch (error) {
-      console.error('Error placing order:', error);
-      alert('Error placing order. Please try again.');
+      console.error('Klaida pateikiant užsakymą:', error);
+      alert('Klaida pateikiant užsakymą. Bandykite dar kartą.');
     } finally {
       setLoading(false);
     }
@@ -188,7 +188,7 @@ export default function App() {
             }`}
           >
             <Package className="w-5 h-5" />
-            <span className="text-xs">Products</span>
+            <span className="text-xs">Prekės</span>
           </button>
           
           <button
@@ -200,7 +200,7 @@ export default function App() {
             }`}
           >
             <ShoppingBag className="w-5 h-5" />
-            <span className="text-xs">Cart</span>
+            <span className="text-xs">Krepšelis</span>
             {totalItems > 0 && (
               <span className="absolute top-1 right-3 bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs font-bold">{totalItems}</span>
             )}
@@ -215,7 +215,7 @@ export default function App() {
             }`}
           >
             <History className="w-5 h-5" />
-            <span className="text-xs">History</span>
+            <span className="text-xs">Istorija</span>
           </button>
         </div>
       </div>

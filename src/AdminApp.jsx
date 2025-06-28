@@ -7,7 +7,7 @@ const getStatusConfig = (status) => {
     case 'pending':
       return {
         icon: <Clock className="w-4 h-4" />,
-        label: 'Pending',
+        label: 'Laukiama',
         bgColor: 'bg-yellow-100',
         textColor: 'text-yellow-700',
         borderColor: 'border-yellow-200'
@@ -15,7 +15,7 @@ const getStatusConfig = (status) => {
     case 'preparing':
       return {
         icon: <Package className="w-4 h-4" />,
-        label: 'Preparing',
+        label: 'Ruošiama',
         bgColor: 'bg-blue-100',
         textColor: 'text-blue-700',
         borderColor: 'border-blue-200'
@@ -24,7 +24,7 @@ const getStatusConfig = (status) => {
     case 'arriving':
       return {
         icon: <Truck className="w-4 h-4" />,
-        label: 'On the way',
+        label: 'Pakeliui',
         bgColor: 'bg-orange-100',
         textColor: 'text-orange-700',
         borderColor: 'border-orange-200'
@@ -33,7 +33,7 @@ const getStatusConfig = (status) => {
     case 'arrived':
       return {
         icon: <CheckCircle className="w-4 h-4" />,
-        label: 'Delivered',
+        label: 'Pristatyta',
         bgColor: 'bg-green-100',
         textColor: 'text-green-700',
         borderColor: 'border-green-200'
@@ -41,7 +41,7 @@ const getStatusConfig = (status) => {
     case 'cancelled':
       return {
         icon: <AlertCircle className="w-4 h-4" />,
-        label: 'Cancelled',
+        label: 'Atšaukta',
         bgColor: 'bg-red-100',
         textColor: 'text-red-700',
         borderColor: 'border-red-200'
@@ -49,7 +49,7 @@ const getStatusConfig = (status) => {
     default:
       return {
         icon: <Clock className="w-4 h-4" />,
-        label: status || 'Unknown',
+        label: status || 'Nežinoma',
         bgColor: 'bg-gray-100',
         textColor: 'text-gray-700',
         borderColor: 'border-gray-200'
@@ -82,16 +82,16 @@ export default function AdminApp() {
   const [mainAdminEntered, setMainAdminEntered] = useState(false);
   const [mainAdminError, setMainAdminError] = useState('');
   const statusTabs = [
-    { key: 'pending', label: 'Pending' },
-    { key: 'arriving', label: 'On the way' },
-    { key: 'arrived', label: 'Delivered' },
-    { key: 'cancelled', label: 'Cancelled' }
+    { key: 'pending', label: 'Laukiama' },
+    { key: 'arriving', label: 'Pakeliui' },
+    { key: 'arrived', label: 'Pristatyta' },
+    { key: 'cancelled', label: 'Atšaukta' }
   ];
   const statusOptions = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'arriving', label: 'On the way' },
-    { value: 'arrived', label: 'Delivered' },
-    { value: 'cancelled', label: 'Cancelled' }
+    { value: 'pending', label: 'Laukiama' },
+    { value: 'arriving', label: 'Pakeliui' },
+    { value: 'arrived', label: 'Pristatyta' },
+    { value: 'cancelled', label: 'Atšaukta' }
   ];
   const MAIN_ADMIN_PASSWORD = 'mainadmin'; // TODO: move to env
 
@@ -208,28 +208,28 @@ export default function AdminApp() {
           className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'orders' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
         >
           <Package className="w-5 h-5" />
-          <span className="text-xs font-semibold">Orders</span>
+          <span className="text-xs font-semibold">Užsakymai</span>
         </button>
         <button
           onClick={() => setActiveNav('messages')}
           className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'messages' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
         >
           <Inbox className="w-5 h-5" />
-          <span className="text-xs font-semibold">Messages</span>
+          <span className="text-xs font-semibold">Žinutės</span>
         </button>
         <button
           onClick={() => setActiveNav('route')}
           className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'route' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
         >
           <Truck className="w-5 h-5" />
-          <span className="text-xs font-semibold">Route</span>
+          <span className="text-xs font-semibold">Maršrutas</span>
         </button>
         <button
           onClick={() => setActiveNav('admin')}
           className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'admin' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
         >
           <Users className="w-5 h-5" />
-          <span className="text-xs font-semibold">⚡ Admin</span>
+          <span className="text-xs font-semibold">⚡ Administratorius</span>
         </button>
       </div>
     </div>
@@ -239,7 +239,7 @@ export default function AdminApp() {
   const renderMainAdminPrompt = () => (
     <div className="min-h-[300px] flex items-center justify-center">
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-xs flex flex-col gap-4">
-        <h2 className="text-xl font-bold text-gray-900 text-center">Main Admin Login</h2>
+        <h2 className="text-xl font-bold text-gray-900 text-center">Pagrindinio administratoriaus prisijungimas</h2>
         <input
           type="password"
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -254,7 +254,7 @@ export default function AdminApp() {
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg"
           onClick={checkMainAdmin}
         >
-          Login
+          Prisijungti
         </button>
       </div>
     </div>
@@ -274,7 +274,7 @@ export default function AdminApp() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-xs flex flex-col gap-4">
-          <h2 className="text-xl font-bold text-gray-900 text-center">Admin Login</h2>
+          <h2 className="text-xl font-bold text-gray-900 text-center">Administratoriaus prisijungimas</h2>
           <input
             type="password"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -289,7 +289,7 @@ export default function AdminApp() {
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg"
             onClick={() => loadOrders()}
           >
-            Login
+            Prisijungti
           </button>
         </div>
       </div>
@@ -301,7 +301,7 @@ export default function AdminApp() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading orders...</p>
+          <p className="mt-4 text-gray-600">Kraunama užsakymai...</p>
         </div>
       </div>
     );
@@ -332,8 +332,8 @@ export default function AdminApp() {
             {orders.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">📦</div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">No orders yet</h2>
-                <p className="text-gray-600">Orders will appear here when customers place them</p>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Užsakymų dar nėra</h2>
+                <p className="text-gray-600">Užsakymai atsiras čia, kai klientai juos pateiks</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -376,30 +376,30 @@ export default function AdminApp() {
                       </div>
 
                       <div className="mb-4">
-                        <h3 className="font-medium text-gray-900 mb-2">Order Items:</h3>
+                        <h3 className="font-medium text-gray-900 mb-2">Užsakymo prekės:</h3>
                         <div className="bg-gray-50 rounded-lg p-3">
                           <p className="text-gray-700 whitespace-pre-line">{items}</p>
                         </div>
                       </div>
 
                       <div className="mb-4">
-                        <h3 className="font-medium text-gray-900 mb-2">Total:</h3>
+                        <h3 className="font-medium text-gray-900 mb-2">Iš viso:</h3>
                         <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
                           <span className="text-blue-800 font-semibold">€{order.total || '0.00'}</span>
                         </div>
                       </div>
 
                       <div className="mb-4">
-                        <h3 className="font-medium text-gray-900 mb-2">User:</h3>
+                        <h3 className="font-medium text-gray-900 mb-2">Vartotojas:</h3>
                         <div className="bg-gray-50 rounded-lg p-3 flex flex-col gap-1">
                           <span className="text-gray-700">ID: {order.user_id}</span>
-                          <span className="text-gray-700">Orders placed: {userOrderCounts[order.user_id] || 1}</span>
+                          <span className="text-gray-700">Užsakymų skaičius: {userOrderCounts[order.user_id] || 1}</span>
                         </div>
                       </div>
 
                       {order.comment && (
                         <div className="mb-4">
-                          <h3 className="font-medium text-gray-900 mb-2">Comment:</h3>
+                          <h3 className="font-medium text-gray-900 mb-2">Komentaras:</h3>
                           <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
                             <p className="text-blue-800">{order.comment}</p>
                           </div>
@@ -408,7 +408,7 @@ export default function AdminApp() {
 
                       {order.location && (
                         <div className="mb-4">
-                          <h3 className="font-medium text-gray-900 mb-2">Location:</h3>
+                          <h3 className="font-medium text-gray-900 mb-2">Pristatymo vieta:</h3>
                           {(() => {
                             let loc = order.location;
                             try {
@@ -445,7 +445,7 @@ export default function AdminApp() {
                                     rel="noopener noreferrer"
                                     className="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-blue-200"
                                   >
-                                    Go with Waze
+                                    Atidaryti su Waze
                                   </a>
                                   <a
                                     href={link}
@@ -453,7 +453,7 @@ export default function AdminApp() {
                                     rel="noopener noreferrer"
                                     className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-gray-200"
                                   >
-                                    Open in Maps
+                                    Atidaryti žemėlapyje
                                   </a>
                                 </div>
                               </div>
@@ -470,7 +470,7 @@ export default function AdminApp() {
                       <div className="flex items-center gap-4 mb-2">
                         <div className="flex-1">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Update Status:
+                            Atnaujinti būseną:
                           </label>
                           <select
                             value={order.status}
@@ -485,7 +485,7 @@ export default function AdminApp() {
                         </div>
                         <div className="flex-1">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            ETA (minutes):
+                            Atvykimo laikas (min):
                           </label>
                           <input
                             type="text"
@@ -511,14 +511,14 @@ export default function AdminApp() {
                       </div>
 
                       <div className="mb-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Admin Note (private):</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Administratoriaus pastaba (privatu):</label>
                         <textarea
                           className="w-full rounded-lg border border-gray-300 p-2 text-gray-800 bg-yellow-50 focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
                           rows={2}
                           value={userNotes[order.user_id] || ''}
                           onChange={e => handleNoteChange(order.user_id, e.target.value)}
                           onBlur={() => handleNoteBlur(order)}
-                          placeholder="Add a private note about this user..."
+                          placeholder="Pridėkite pastabą apie šį vartotoją..."
                         />
                       </div>
 
@@ -528,14 +528,14 @@ export default function AdminApp() {
                           onClick={() => removeOrder(order.order_id)}
                           disabled={updating[order.order_id]}
                         >
-                          Remove Order
+                          Pašalinti užsakymą
                         </button>
                       </div>
 
                       {updating[order.order_id] && (
                         <div className="mt-4 flex items-center gap-2 text-blue-600">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                          <span className="text-sm">Updating...</span>
+                          <span className="text-sm">Atnaujinama...</span>
                         </div>
                       )}
                     </div>
@@ -548,7 +548,7 @@ export default function AdminApp() {
         {activeNav === 'messages' && (
           <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
             <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
-              <h3 className="text-lg font-semibold mb-4">Admin Chat</h3>
+              <h3 className="text-lg font-semibold mb-4">Administratoriaus pokalbis</h3>
               <AdminChatPanel adminPassword={adminPassword} />
             </div>
           </div>
@@ -556,7 +556,7 @@ export default function AdminApp() {
         {activeNav === 'route' && (
           <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
             <div className="bg-white rounded-xl shadow p-6 w-full max-w-2xl">
-              <h3 className="text-lg font-semibold mb-4">Route Optimizer</h3>
+              <h3 className="text-lg font-semibold mb-4">Maršruto optimizavimas</h3>
               <RouteOptimizerPanel orders={orders} />
             </div>
           </div>
@@ -564,18 +564,18 @@ export default function AdminApp() {
         {activeNav === 'admin' && (
           !mainAdminEntered ? renderMainAdminPrompt() : (
             <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
-              <h2 className="text-2xl font-bold mb-4">Driver Stats</h2>
+              <h2 className="text-2xl font-bold mb-4">Vairuotojo statistika</h2>
               <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl text-center mb-8">
                 <DriverStatsPanel mainAdminPassword={mainAdminPassword} />
               </div>
               {/* Product management */}
               <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl mb-8">
-                <h3 className="text-lg font-semibold mb-2">Product Management</h3>
+                <h3 className="text-lg font-semibold mb-2">Produktų valdymas</h3>
                 <ProductManagementPanel mainAdminPassword={mainAdminPassword} />
               </div>
               {/* Admin user management */}
               <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
-                <h3 className="text-lg font-semibold mb-2">Admin Users</h3>
+                <h3 className="text-lg font-semibold mb-2">Administratoriai</h3>
                 <AdminUsersPanel mainAdminPassword={mainAdminPassword} />
               </div>
             </div>
@@ -668,7 +668,7 @@ function AdminUsersPanel({ mainAdminPassword }) {
           className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
           onClick={handleAdd}
           disabled={loading}
-        >Add</button>
+        >Pridėti</button>
       </div>
       {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
       <ul className="divide-y divide-gray-200">
@@ -682,7 +682,7 @@ function AdminUsersPanel({ mainAdminPassword }) {
               className="text-red-600 hover:underline text-xs"
               onClick={() => handleRemove(u.user_id)}
               disabled={loading}
-            >Remove</button>
+            >Pašalinti</button>
           </li>
         ))}
       </ul>
@@ -1109,11 +1109,11 @@ function ProductManagementPanel({ mainAdminPassword }) {
         </table>
       </div>
       <div className="mb-2 flex gap-2 items-center">
-        <span className="text-xs">Stats period:</span>
+        <span className="text-xs">Statistikos laikotarpis:</span>
         <select className="border rounded px-2 py-1 text-xs" value={statsPeriod} onChange={e => setStatsPeriod(e.target.value)}>
-          <option value="day">Day</option>
-          <option value="week">Week</option>
-          <option value="month">Month</option>
+          <option value="day">Diena</option>
+          <option value="week">Savaitė</option>
+          <option value="month">Mėnuo</option>
         </select>
       </div>
       <ProductStatsGraph stats={stats} period={statsPeriod} />

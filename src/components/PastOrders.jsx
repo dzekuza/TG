@@ -6,7 +6,7 @@ const getStatusConfig = (status) => {
     case 'pending':
       return {
         icon: <Clock className="w-4 h-4" />,
-        label: 'Pending',
+        label: 'Laukiama',
         bgColor: 'bg-yellow-100',
         textColor: 'text-yellow-700',
         borderColor: 'border-yellow-200'
@@ -14,7 +14,7 @@ const getStatusConfig = (status) => {
     case 'preparing':
       return {
         icon: <Package className="w-4 h-4" />,
-        label: 'Preparing',
+        label: 'Ruošiama',
         bgColor: 'bg-blue-100',
         textColor: 'text-blue-700',
         borderColor: 'border-blue-200'
@@ -23,7 +23,7 @@ const getStatusConfig = (status) => {
     case 'arriving':
       return {
         icon: <Truck className="w-4 h-4" />,
-        label: 'On the way',
+        label: 'Pakeliui',
         bgColor: 'bg-orange-100',
         textColor: 'text-orange-700',
         borderColor: 'border-orange-200'
@@ -32,7 +32,7 @@ const getStatusConfig = (status) => {
     case 'arrived':
       return {
         icon: <CheckCircle className="w-4 h-4" />,
-        label: 'Delivered',
+        label: 'Pristatyta',
         bgColor: 'bg-green-100',
         textColor: 'text-green-700',
         borderColor: 'border-green-200'
@@ -40,7 +40,7 @@ const getStatusConfig = (status) => {
     case 'cancelled':
       return {
         icon: <AlertCircle className="w-4 h-4" />,
-        label: 'Cancelled',
+        label: 'Atšaukta',
         bgColor: 'bg-red-100',
         textColor: 'text-red-700',
         borderColor: 'border-red-200'
@@ -48,7 +48,7 @@ const getStatusConfig = (status) => {
     default:
       return {
         icon: <Clock className="w-4 h-4" />,
-        label: status || 'Unknown',
+        label: status || 'Nežinoma',
         bgColor: 'bg-gray-100',
         textColor: 'text-gray-700',
         borderColor: 'border-gray-200'
@@ -98,9 +98,9 @@ export function PastOrders({ orders = [] }) {
     return (
       <div className="p-4 pb-20 flex flex-col items-center justify-center min-h-96">
         <div className="text-6xl mb-4">📋</div>
-        <h2 className="text-gray-800 mb-2">No order history</h2>
+        <h2 className="text-gray-800 mb-2">Nėra užsakymų istorijos</h2>
         <p className="text-gray-600 text-center text-sm">
-          Your past orders will appear here once you place your first order!
+          Jūsų ankstesni užsakymai atsiras čia, kai pateiksite pirmą užsakymą!
         </p>
       </div>
     );
@@ -109,9 +109,9 @@ export function PastOrders({ orders = [] }) {
   return (
     <div className="p-4 pb-20">
       <div className="mb-6">
-        <h1 className="text-center text-gray-800 mb-2">📋 Order History</h1>
+        <h1 className="text-center text-gray-800 mb-2">📋 Užsakymų istorija</h1>
         <p className="text-center text-gray-600 text-sm">
-          Track your past orders and delivery status
+          Stebėkite savo užsakymų būseną ir pristatymą
         </p>
       </div>
 
@@ -156,8 +156,8 @@ export function PastOrders({ orders = [] }) {
                 <div className="w-full p-3 rounded-lg text-center font-semibold text-blue-800 bg-blue-50 border border-blue-100">
                   <Clock className="w-4 h-4 inline-block mr-1 align-text-bottom text-blue-600" />
                   {order.eta
-                    ? (liveETA > 0 ? `ETA: ${liveETA} min` : 'Arriving soon')
-                    : 'ETA: Calculating...'}
+                    ? (liveETA > 0 ? `Atvykimo laikas: ${liveETA} min` : 'Netrukus atvyks')
+                    : 'Skaičiuojamas atvykimo laikas...'}
                 </div>
               </div>
 
@@ -176,7 +176,7 @@ export function PastOrders({ orders = [] }) {
                 </div>
                 <div className="text-right">
                   <div className="text-gray-900">€{order.total || '0.00'}</div>
-                  <div className="text-gray-500 text-sm">{items.split(',').length} items</div>
+                  <div className="text-gray-500 text-sm">{items.split(',').length} prekės</div>
                 </div>
               </div>
 
@@ -195,7 +195,7 @@ export function PastOrders({ orders = [] }) {
                 <div className="flex items-start gap-2 mb-3 p-3 bg-green-50 rounded-lg border border-green-100">
                   <MessageSquare className="w-4 h-4 text-green-600 mt-0.5" />
                   <div>
-                    <div className="text-xs text-green-700 mb-1">Comment:</div>
+                    <div className="text-xs text-green-700 mb-1">Komentaras:</div>
                     <div className="text-sm text-green-800">{order.comment}</div>
                   </div>
                 </div>

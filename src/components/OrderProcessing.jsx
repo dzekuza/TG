@@ -99,12 +99,12 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
       {/* Upsell/discount message */}
       {totalQty > 0 && discount < 0.3 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 text-yellow-800 text-center text-sm">
-          Add 1 more item for {Math.round((nextDiscount) * 100)}% off your total!
+          Pridėkite dar {nextQty} prekę (-es), kad gautumėte {Math.round((nextDiscount) * 100)}% nuolaidą!
         </div>
       )}
       {discount > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6 text-green-800 text-center text-sm">
-          Discount applied: -{Math.round(discount * 100)}%
+          Nuolaida pritaikyta: -{Math.round(discount * 100)}%
         </div>
       )}
 
