@@ -6,7 +6,7 @@ function getPriceForQuantity(price_ranges, quantity) {
   return found ? found.price : 0;
 }
 
-export function ProductCard({ product, quantity, onQuantityChange }) {
+export function ProductCard({ product, quantity, onQuantityChange, hideQuantityControls }) {
   const handleDecrease = () => {
     if (quantity > 0) {
       onQuantityChange(product.id, quantity - 1);
@@ -50,23 +50,25 @@ export function ProductCard({ product, quantity, onQuantityChange }) {
             ))
           )}
         </div>
-        <div className="flex items-center gap-3 mb-2">
-          <button
-            onClick={handleDecrease}
-            className="w-8 h-8 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-            disabled={quantity === 0}
-          >
-            <Minus className="w-4 h-4 text-gray-600" />
-          </button>
-          <span className="w-8 text-center">{quantity}</span>
-          <button
-            onClick={handleIncrease}
-            className="w-8 h-8 rounded-lg border-2 border-blue-200 bg-blue-50 flex items-center justify-center hover:bg-blue-100 transition-colors"
-          >
-            <Plus className="w-4 h-4 text-blue-600" />
-          </button>
-        </div>
-        {quantity > 0 && (
+        {!hideQuantityControls && (
+          <div className="flex items-center gap-3 mb-2">
+            <button
+              onClick={handleDecrease}
+              className="w-8 h-8 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+              disabled={quantity === 0}
+            >
+              <Minus className="w-4 h-4 text-gray-600" />
+            </button>
+            <span className="w-8 text-center">{quantity}</span>
+            <button
+              onClick={handleIncrease}
+              className="w-8 h-8 rounded-lg border-2 border-blue-200 bg-blue-50 flex items-center justify-center hover:bg-blue-100 transition-colors"
+            >
+              <Plus className="w-4 h-4 text-blue-600" />
+            </button>
+          </div>
+        )}
+        {quantity > 0 && !hideQuantityControls && (
           <div className="text-xs text-gray-500">
             Iš viso: €{total.toFixed(2)}
           </div>

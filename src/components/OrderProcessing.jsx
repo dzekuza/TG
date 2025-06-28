@@ -12,6 +12,8 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
   const [address, setAddress] = useState('');
   const [comment, setComment] = useState('');
   const [loadingPay, setLoadingPay] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const cartItems = products.filter(product => cart[product.id] > 0);
   const totalItems = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
   const totalQty = totalItems;
@@ -142,7 +144,36 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
             value={address}
             onChange={e => setAddress(e.target.value)}
           />
+          <button
+            type="button"
+            className="px-3 py-2 rounded-xl bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition-colors whitespace-nowrap"
+            onClick={async () => {
+              setLocating(true);
+              setLocationError('');
+              if (!navigator.geolocation) {
+                setLocationError('Jūsų naršyklė nepalaiko geolokacijos');
+                setLocating(false);
+                return;
+              }
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  const lat = pos.coords.latitude;
+                  const lng = pos.coords.longitude;
+                  setAddress(`https://www.google.com/maps?q=${lat},${lng}`);
+                  setLocating(false);
+                },
+                (err) => {
+                  setLocationError('Nepavyko gauti lokacijos');
+                  setLocating(false);
+                }
+              );
+            }}
+            disabled={locating}
+          >
+            {locating ? 'Gaunama...' : 'Gauti mano lokaciją'}
+          </button>
         </div>
+        {locationError && <div className="text-red-600 text-xs mt-1">{locationError}</div>}
       </div>
 
       {/* Comments area */}

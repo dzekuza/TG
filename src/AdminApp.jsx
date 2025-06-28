@@ -205,42 +205,6 @@ export default function AdminApp() {
     }
   };
 
-  // Top navigation bar
-  const renderNav = () => (
-    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 mb-6">
-      <div className="max-w-7xl mx-auto flex gap-2 px-4 py-2">
-        <button
-          onClick={() => setActiveNav('orders')}
-          className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'orders' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
-        >
-          <Package className="w-5 h-5" />
-          <span className="text-xs font-semibold">Užsakymai</span>
-        </button>
-        <button
-          onClick={() => setActiveNav('messages')}
-          className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'messages' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
-        >
-          <Inbox className="w-5 h-5" />
-          <span className="text-xs font-semibold">Žinutės</span>
-        </button>
-        <button
-          onClick={() => setActiveNav('route')}
-          className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'route' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
-        >
-          <Truck className="w-5 h-5" />
-          <span className="text-xs font-semibold">Maršrutas</span>
-        </button>
-        <button
-          onClick={() => setActiveNav('admin')}
-          className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'admin' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
-        >
-          <Users className="w-5 h-5" />
-          <span className="text-xs font-semibold">admin</span>
-        </button>
-      </div>
-    </div>
-  );
-
   if (!passwordEntered) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -280,8 +244,8 @@ export default function AdminApp() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {renderNav()}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Main content with bottom padding for nav */}
+      <div className="max-w-7xl mx-auto px-4 py-6 pb-24">
         {activeNav === 'orders' && (
           <>
             {/* Status Tabs */}
@@ -541,6 +505,39 @@ export default function AdminApp() {
           </div>
         )}
         {activeNav === 'admin' && <AdminTabWithErrorBoundary />}
+      </div>
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20">
+        <div className="max-w-7xl mx-auto flex gap-2 px-4 py-2">
+          <button
+            onClick={() => setActiveNav('orders')}
+            className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'orders' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+          >
+            <Package className="w-5 h-5" />
+            <span className="text-xs font-semibold">Užsakymai</span>
+          </button>
+          <button
+            onClick={() => setActiveNav('messages')}
+            className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'messages' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+          >
+            <Inbox className="w-5 h-5" />
+            <span className="text-xs font-semibold">Žinutės</span>
+          </button>
+          <button
+            onClick={() => setActiveNav('route')}
+            className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'route' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+          >
+            <Truck className="w-5 h-5" />
+            <span className="text-xs font-semibold">Maršrutas</span>
+          </button>
+          <button
+            onClick={() => setActiveNav('admin')}
+            className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'admin' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+          >
+            <Users className="w-5 h-5" />
+            <span className="text-xs font-semibold">admin</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -837,6 +834,27 @@ function ProductManagementPanel() {
   const [imagePreview, setImagePreview] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showStats, setShowStats] = useState(null); // product for stats
+  const [modalVisible, setModalVisible] = useState(false);
+  const [statsModalVisible, setStatsModalVisible] = useState(false);
+
+  // Animate modal open/close
+  useEffect(() => {
+    if (showModal) {
+      setModalVisible(true);
+    } else if (modalVisible) {
+      // Delay unmount for animation
+      const timeout = setTimeout(() => setModalVisible(false), 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [showModal]);
+  useEffect(() => {
+    if (showStats) {
+      setStatsModalVisible(true);
+    } else if (statsModalVisible) {
+      const timeout = setTimeout(() => setStatsModalVisible(false), 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [showStats]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -991,7 +1009,7 @@ function ProductManagementPanel() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         {products.map(product => (
           <div key={product.id} className="relative group">
-            <ProductCard product={product} quantity={0} onQuantityChange={() => {}} />
+            <ProductCard product={product} quantity={0} onQuantityChange={() => {}} hideQuantityControls={true} />
             <button
               className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs opacity-90 group-hover:opacity-100"
               onClick={() => { setEditing(product.id); setShowModal(true); handleEdit(product); }}
@@ -1009,9 +1027,9 @@ function ProductManagementPanel() {
         </button>
       </div>
       {/* Slide-in modal for add/edit */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => { setShowModal(false); handleCancel(); }}>
-          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto animate-slide-in-up" onClick={e => e.stopPropagation()}>
+      {(showModal || modalVisible) && (
+        <div className={`fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50 transition-opacity duration-300 ${showModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => { setShowModal(false); handleCancel(); }}>
+          <div className={`bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto transform transition-transform duration-300 ${showModal ? 'translate-y-0' : 'translate-y-full'} animate-slide-in-up`} onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-semibold mb-4">{editing ? 'Redaguoti produktą' : 'Pridėti naują produktą'}</h3>
             <div className="mb-4 flex flex-col gap-3">
               <input
@@ -1089,11 +1107,11 @@ function ProductManagementPanel() {
         </div>
       )}
       {/* Modal for product stats */}
-      {showStats && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => setShowStats(null)}>
-          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto animate-slide-in-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">Statistika: {showStats.name}</h3>
-            <div>Produktas parduotas: <span className="font-bold">{stats.find(s => s.name === showStats.name)?.count || 0}</span> vnt.</div>
+      {(showStats || statsModalVisible) && (
+        <div className={`fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50 transition-opacity duration-300 ${showStats ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setShowStats(null)}>
+          <div className={`bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto transform transition-transform duration-300 ${showStats ? 'translate-y-0' : 'translate-y-full'} animate-slide-in-up`} onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-4">Statistika: {showStats?.name}</h3>
+            <div>Produktas parduotas: <span className="font-bold">{stats.find(s => s.name === showStats?.name)?.count || 0}</span> vnt.</div>
             <button className="mt-4 w-full text-gray-500 hover:underline" onClick={() => setShowStats(null)}>Uždaryti</button>
           </div>
         </div>
@@ -1142,6 +1160,7 @@ function RouteOptimizerPanel({ orders }) {
   const [etaMap, setEtaMap] = useState({});
   const [driverLocation, setDriverLocation] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
 
   // Helper: filter active orders
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'arriving');
@@ -1160,9 +1179,9 @@ function RouteOptimizerPanel({ orders }) {
   }
 
   const handleFetchLocation = () => {
-    setLocating(true); setError('');
+    setLocating(true); setError(''); setLocationError('');
     if (!navigator.geolocation) {
-      setError('Geolocation not supported');
+      setLocationError('Jūsų naršyklė nepalaiko geolokacijos');
       setLocating(false);
       return;
     }
@@ -1172,7 +1191,7 @@ function RouteOptimizerPanel({ orders }) {
         setLocating(false);
       },
       (err) => {
-        setError('Failed to get driver location');
+        setLocationError('Nepavyko gauti lokacijos');
         setLocating(false);
       }
     );
@@ -1248,6 +1267,17 @@ function RouteOptimizerPanel({ orders }) {
           onClick={handleFetchLocation}
           disabled={locating}
         >{locating ? 'Gaunama lokacija...' : (driverLocation ? 'Lokacija gauta' : 'Gauti mano lokaciją')}</button>
+        {driverLocation && (
+          <a
+            href={`https://www.google.com/maps?q=${driverLocation.lat},${driverLocation.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-700 underline text-xs mb-2"
+          >
+            Atidaryti mano lokaciją Google Maps
+          </a>
+        )}
+        {locationError && <div className="text-red-600 text-xs mb-1">{locationError}</div>}
         <button
           className="mt-2 bg-blue-600 text-white px-4 py-2 rounded font-semibold disabled:opacity-50"
           onClick={handleOptimize}
