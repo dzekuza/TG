@@ -71,6 +71,18 @@ export default function App() {
     setCart({});
   };
 
+  // Helper to calculate total for a product and quantity (same as in OrderProcessing)
+  function getProductTotal(product, qty) {
+    const price1 = typeof product.price_1 === 'number' ? product.price_1 : Number(product.price_1) || 0;
+    const price2 = typeof product.price_2 === 'number' ? product.price_2 : Number(product.price_2) || price1 * 2;
+    const price3 = typeof product.price_3 === 'number' ? product.price_3 : Number(product.price_3) || price1 * 3;
+    if (qty === 1) return price1;
+    if (qty === 2) return price2;
+    if (qty === 3) return price3;
+    if (qty > 3) return price1 * qty;
+    return 0;
+  }
+
   const handleSubmitOrder = async ({ address, comment } = {}) => {
     if (!user) {
       alert('Please log in to place an order');
@@ -93,10 +105,11 @@ export default function App() {
         items: cartItems.map(product => ({
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: getProductTotal(product, cart[product.id]), // total for this qty
           qty: cart[product.id],
           emoji: product.emoji || ''
-        }))
+        })),
+        total: cartItems.reduce((sum, product) => sum + getProductTotal(product, cart[product.id]), 0)
       };
 
       const response = await fetch('/api/order', {

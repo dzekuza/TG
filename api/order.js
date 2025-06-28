@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Helper to calculate total from items
 function calculateTotal(items) {
   if (!Array.isArray(items)) return 0;
-  return items.reduce((sum, item) => sum + (Number(item.price || 0) * (Number(item.qty) || 1)), 0);
+  return items.reduce((sum, item) => sum + Number(item.price || 0), 0);
 }
 
 export default async function handler(req, res) {
