@@ -205,6 +205,20 @@ export function OptimizedRoute({ adminPassword }) {
           <div className="text-sm text-orange-600 mt-1">
             ETA: {currentStop.eta || '-'}
           </div>
+          {/* Waze embed for current stop */}
+          {driverLoc && parseLatLng(currentStop.location) && (
+            <div className="mt-4">
+              <iframe
+                title="Waze Route Preview"
+                width="100%"
+                height="200"
+                className="rounded-lg border"
+                src={`https://embed.waze.com/iframe?zoom=15&lat=${driverLoc.lat}&lon=${driverLoc.lng}&pin=1&navigate=yes&to=${parseLatLng(currentStop.location).lat},${parseLatLng(currentStop.location).lng}`}
+                allowFullScreen
+              ></iframe>
+              <div className="text-xs text-gray-500 mt-1">Waze route: driver → next stop</div>
+            </div>
+          )}
         </div>
       )}
 
