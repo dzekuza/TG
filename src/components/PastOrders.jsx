@@ -77,20 +77,25 @@ const formatDate = (dateString) => {
 };
 
 export function PastOrders({ orders = [] }) {
-  // Helper for live ETA countdown
-  function useLiveETA(eta, updatedAt) {
-    const [remaining, setRemaining] = useState(eta);
+  const [hiddenOrders, setHiddenOrders] = useState([]);
+
+  // Helper for live ETA countdown (timestamp version)
+  function useLiveETA(etaTimestamp) {
+    const [remaining, setRemaining] = useState(null);
     useEffect(() => {
-      if (!eta || !updatedAt) return;
-      const start = new Date(updatedAt).getTime();
+      if (!etaTimestamp) return;
       const interval = setInterval(() => {
+        const etaTime = new Date(etaTimestamp).getTime();
         const now = Date.now();
-        const elapsed = Math.floor((now - start) / 60000); // minutes
-        const left = Math.max(0, eta - elapsed);
-        setRemaining(left);
+        const diff = Math.max(0, Math.ceil((etaTime - now) / 60000));
+        setRemaining(diff);
       }, 10000);
+      // Initial set
+      const etaTime = new Date(etaTimestamp).getTime();
+      const now = Date.now();
+      setRemaining(Math.max(0, Math.ceil((etaTime - now) / 60000)));
       return () => clearInterval(interval);
-    }, [eta, updatedAt]);
+    }, [etaTimestamp]);
     return remaining;
   }
 
@@ -116,7 +121,7 @@ export function PastOrders({ orders = [] }) {
       </div>
 
       <div className="space-y-4">
-        {orders.map((order) => {
+        {orders.filter(order => !hiddenOrders.includes(order.order_id)).map((order) => {
           const statusConfig = getStatusConfig(order.status);
           let items = '';
           try {
@@ -147,19 +152,29 @@ export function PastOrders({ orders = [] }) {
           }
 
           // ETA logic
-          const liveETA = order.eta ? useLiveETA(Number(order.eta), order.updated_at || order.created_at) : null;
+          const liveETA = order.eta ? useLiveETA(order.eta) : null;
 
           return (
-            <div key={order.order_id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <div key={order.order_id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative">
+              {/* Delete button */}
+              <button
+                className="absolute top-3 right-3 bg-red-100 text-red-700 rounded-full px-3 py-1 text-xs font-semibold hover:bg-red-200"
+                onClick={() => setHiddenOrders(prev => [...prev, order.order_id])}
+                title="Pašalinti šį užsakymą iš sąrašo"
+              >
+                Pašalinti
+              </button>
               {/* ETA at top */}
-              <div className="mb-3">
-                <div className="w-full p-3 rounded-lg text-center font-semibold text-blue-800 bg-blue-50 border border-blue-100">
-                  <Clock className="w-4 h-4 inline-block mr-1 align-text-bottom text-blue-600" />
-                  {order.eta
-                    ? (liveETA > 0 ? `Atvykimo laikas: ${liveETA} min` : 'Netrukus atvyks')
-                    : 'Skaičiuojamas atvykimo laikas...'}
+              {!(order.status === 'arrived' || order.status === 'delivered' || order.status === 'cancelled') && (
+                <div className="mb-3">
+                  <div className="w-full p-3 rounded-lg text-center font-semibold text-blue-800 bg-blue-50 border border-blue-100">
+                    <Clock className="w-4 h-4 inline-block mr-1 align-text-bottom text-blue-600" />
+                    {order.eta
+                      ? (liveETA > 0 ? `Atvykimo laikas: ${liveETA} min` : 'Netrukus atvyks')
+                      : 'Skaičiuojamas atvykimo laikas...'}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Order Header */}
               <div className="flex items-start justify-between mb-4">
@@ -182,12 +197,32 @@ export function PastOrders({ orders = [] }) {
 
               {/* Order Items */}
               <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                  <span className="text-lg">🍽️</span>
-                  <div className="flex-1">
-                    <div className="text-sm text-gray-900">{items}</div>
-                  </div>
-                </div>
+                {(() => {
+                  let parsed = [];
+                  try {
+                    parsed = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+                  } catch {}
+                  if (!Array.isArray(parsed)) parsed = [];
+                  return parsed.map((i, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                      <span className="text-lg w-8 h-8 flex items-center justify-center overflow-hidden rounded">
+                        {i.image_url ? (
+                          <img
+                            src={i.image_url}
+                            alt={i.name || ''}
+                            className="w-full h-full object-cover rounded"
+                            onError={e => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <span className="text-2xl">{i.emoji}</span>
+                        )}
+                      </span>
+                      <div className="flex-1">
+                        <div className="text-sm text-gray-900">{(i.name || i.meal || '') + (i.qty ? ` x${i.qty}` : '')}</div>
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
 
               {/* Admin Comments */}
@@ -204,8 +239,7 @@ export function PastOrders({ orders = [] }) {
               {/* Delivery Info */}
               {link && (
                 <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3 h-3" />
+                  <div>
                     {(() => {
                       // Try to extract lat/lng from any link
                       let lat = null, lng = null, found = false;

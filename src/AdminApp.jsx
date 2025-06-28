@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Clock, MessageSquare, MapPin, Calendar, CheckCircle, AlertCircle, Package, Truck, RefreshCw, Users, Inbox } from 'lucide-react';
 import { upload } from '@vercel/blob';
+import { DataTable } from './components/ui/data-table';
+import { ColumnDef } from '@tanstack/react-table';
 
 const getStatusConfig = (status) => {
   switch (status) {
@@ -78,9 +80,7 @@ export default function AdminApp() {
   const [passwordEntered, setPasswordEntered] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [activeNav, setActiveNav] = useState('orders');
-  const [mainAdminPassword, setMainAdminPassword] = useState('');
-  const [mainAdminEntered, setMainAdminEntered] = useState(false);
-  const [mainAdminError, setMainAdminError] = useState('');
+  const [noteInput, setNoteInput] = useState({});
   const statusTabs = [
     { key: 'pending', label: 'Laukiama' },
     { key: 'arriving', label: 'Pakeliui' },
@@ -93,7 +93,6 @@ export default function AdminApp() {
     { value: 'arrived', label: 'Pristatyta' },
     { value: 'cancelled', label: 'Atšaukta' }
   ];
-  const MAIN_ADMIN_PASSWORD = 'mainadmin'; // TODO: move to env
 
   useEffect(() => {
     loadOrders();
@@ -171,7 +170,14 @@ export default function AdminApp() {
   };
 
   const handleNoteBlur = async (order) => {
-    await updateOrderStatus(order.order_id, order.status, order.comment, order.eta, order.driver_location, userNotes[order.user_id], order.user_id);
+    const prevNote = userNotes[order.user_id] || '';
+    const newNote = noteInput[order.user_id] || '';
+    if (!newNote.trim()) return;
+    const timestamp = new Date().toLocaleString('lt-LT');
+    const appended = prevNote ? `${prevNote}\n[${timestamp}] ${newNote}` : `[${timestamp}] ${newNote}`;
+    setUserNotes(prev => ({ ...prev, [order.user_id]: appended }));
+    setNoteInput(prev => ({ ...prev, [order.user_id]: '' }));
+    await updateOrderStatus(order.order_id, order.status, order.comment, order.eta, order.driver_location, appended, order.user_id);
   };
 
   const handleEtaHotkey = async (order, minutes) => {
@@ -234,41 +240,6 @@ export default function AdminApp() {
       </div>
     </div>
   );
-
-  // Main admin password prompt
-  const renderMainAdminPrompt = () => (
-    <div className="min-h-[300px] flex items-center justify-center">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-xs flex flex-col gap-4">
-        <h2 className="text-xl font-bold text-gray-900 text-center">Pagrindinio administratoriaus prisijungimas</h2>
-        <input
-          type="password"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Enter main admin password"
-          value={mainAdminPassword}
-          onChange={e => setMainAdminPassword(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') checkMainAdmin(); }}
-          autoFocus
-        />
-        {mainAdminError && <div className="text-red-600 text-sm text-center">{mainAdminError}</div>}
-        <button
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg"
-          onClick={checkMainAdmin}
-        >
-          Prisijungti
-        </button>
-      </div>
-    </div>
-  );
-
-  const checkMainAdmin = () => {
-    if (mainAdminPassword === MAIN_ADMIN_PASSWORD) {
-      setMainAdminEntered(true);
-      setMainAdminError('');
-    } else {
-      setMainAdminError('Incorrect password');
-      setMainAdminEntered(false);
-    }
-  };
 
   if (!passwordEntered) {
     return (
@@ -515,12 +486,20 @@ export default function AdminApp() {
                         <textarea
                           className="w-full rounded-lg border border-gray-300 p-2 text-gray-800 bg-yellow-50 focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
                           rows={2}
-                          value={userNotes[order.user_id] || ''}
-                          onChange={e => handleNoteChange(order.user_id, e.target.value)}
+                          value={noteInput[order.user_id] || ''}
+                          onChange={e => setNoteInput(prev => ({ ...prev, [order.user_id]: e.target.value }))}
                           onBlur={() => handleNoteBlur(order)}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleNoteBlur(order); } }}
                           placeholder="Pridėkite pastabą apie šį vartotoją..."
                         />
                       </div>
+
+                      {/* Show all previous notes below */}
+                      {userNotes[order.user_id] && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-700 whitespace-pre-line border border-gray-200">
+                          {userNotes[order.user_id]}
+                        </div>
+                      )}
 
                       <div className="flex justify-end mt-2">
                         <button
@@ -562,31 +541,29 @@ export default function AdminApp() {
           </div>
         )}
         {activeNav === 'admin' && (
-          !mainAdminEntered ? renderMainAdminPrompt() : (
-            <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
-              <h2 className="text-2xl font-bold mb-4">Vairuotojo statistika</h2>
-              <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl text-center mb-8">
-                <DriverStatsPanel mainAdminPassword={mainAdminPassword} />
-              </div>
-              {/* Product management */}
-              <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl mb-8">
-                <h3 className="text-lg font-semibold mb-2">Produktų valdymas</h3>
-                <ProductManagementPanel mainAdminPassword={mainAdminPassword} />
-              </div>
-              {/* Admin user management */}
-              <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
-                <h3 className="text-lg font-semibold mb-2">Administratoriai</h3>
-                <AdminUsersPanel mainAdminPassword={mainAdminPassword} />
-              </div>
+          <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
+            <h2 className="text-2xl font-bold mb-4">Vairuotojo statistika</h2>
+            <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl text-center mb-8">
+              <DriverStatsPanel />
             </div>
-          )
+            {/* Product management */}
+            <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl mb-8">
+              <h3 className="text-lg font-semibold mb-2">Produktų valdymas</h3>
+              <ProductManagementPanel />
+            </div>
+            {/* Admin user management */}
+            <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
+              <h3 className="text-lg font-semibold mb-2">Administratoriai</h3>
+              <AdminUsersPanel />
+            </div>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function AdminUsersPanel({ mainAdminPassword }) {
+function AdminUsersPanel() {
   const [users, setUsers] = useState([]);
   const [userId, setUserId] = useState('');
   const [nickname, setNickname] = useState('');
@@ -597,7 +574,7 @@ function AdminUsersPanel({ mainAdminPassword }) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/admin-users?password=${encodeURIComponent(mainAdminPassword)}`);
+      const res = await fetch('/api/admin-users');
       if (!res.ok) throw new Error('Failed to fetch users');
       const data = await res.json();
       setUsers(data.users || []);
@@ -618,7 +595,7 @@ function AdminUsersPanel({ mainAdminPassword }) {
       const res = await fetch('/api/admin-users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, nickname, password: mainAdminPassword })
+        body: JSON.stringify({ user_id: userId, nickname })
       });
       if (!res.ok) throw new Error('Failed to add user');
       setUserId(''); setNickname('');
@@ -638,7 +615,7 @@ function AdminUsersPanel({ mainAdminPassword }) {
       const res = await fetch('/api/admin-users', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: uid, password: mainAdminPassword })
+        body: JSON.stringify({ user_id: uid })
       });
       if (!res.ok) throw new Error('Failed to remove user');
       fetchUsers();
@@ -690,7 +667,7 @@ function AdminUsersPanel({ mainAdminPassword }) {
   );
 }
 
-function DriverStatsPanel({ mainAdminPassword }) {
+function DriverStatsPanel() {
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -698,7 +675,7 @@ function DriverStatsPanel({ mainAdminPassword }) {
   useEffect(() => {
     setLoading(true);
     setError('');
-    fetch(`/api/admin-users?stats=1&password=${encodeURIComponent(mainAdminPassword)}`)
+    fetch('/api/admin-users?stats=1')
       .then(res => res.json())
       .then(data => {
         setStats(data.stats || []);
@@ -708,7 +685,7 @@ function DriverStatsPanel({ mainAdminPassword }) {
         setError('Error loading stats');
         setLoading(false);
       });
-  }, [mainAdminPassword]);
+  }, []);
 
   // Aggregate totals per user
   const userTotals = {};
@@ -720,6 +697,27 @@ function DriverStatsPanel({ mainAdminPassword }) {
     userTotals[s.user_id].km += Number(s.km_driven || 0);
   });
 
+  // Columns for per-day stats
+  const statsColumns = [
+    { accessorKey: 'user_id', header: 'User ID', cell: info => <span className="font-mono">{info.getValue()}</span> },
+    { accessorKey: 'nickname', header: 'Nickname', cell: info => info.getValue() || '-' },
+    { accessorKey: 'date', header: 'Date', cell: info => info.getValue() },
+    { accessorKey: 'orders_delivered', header: 'Orders', cell: info => info.getValue() },
+    { accessorKey: 'profit', header: 'Profit (€)', cell: info => Number(info.getValue()).toFixed(2) },
+    { accessorKey: 'hours_worked', header: 'Hours', cell: info => info.getValue() },
+    { accessorKey: 'km_driven', header: 'KM', cell: info => info.getValue() },
+  ];
+  // Columns for totals per driver
+  const totalsColumns = [
+    { accessorKey: 'user_id', header: 'User ID', cell: info => <span className="font-mono">{info.getValue()}</span> },
+    { accessorKey: 'nickname', header: 'Nickname', cell: info => info.getValue() || '-' },
+    { accessorKey: 'orders', header: 'Orders', cell: info => info.getValue() },
+    { accessorKey: 'profit', header: 'Profit (€)', cell: info => Number(info.getValue()).toFixed(2) },
+    { accessorKey: 'hours', header: 'Hours', cell: info => info.getValue() },
+    { accessorKey: 'km', header: 'KM', cell: info => info.getValue() },
+  ];
+  // Prepare totals data as array
+  const totalsData = Object.entries(userTotals).map(([user_id, t]) => ({ user_id, ...t }));
   return (
     <div className="overflow-x-auto">
       <h3 className="text-lg font-semibold mb-4">All Drivers - Stats</h3>
@@ -729,57 +727,13 @@ function DriverStatsPanel({ mainAdminPassword }) {
         <div className="text-red-600">{error}</div>
       ) : (
         <>
-          <table className="min-w-full text-xs md:text-sm border">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="px-2 py-1 border">User ID</th>
-                <th className="px-2 py-1 border">Nickname</th>
-                <th className="px-2 py-1 border">Date</th>
-                <th className="px-2 py-1 border">Orders</th>
-                <th className="px-2 py-1 border">Profit (€)</th>
-                <th className="px-2 py-1 border">Hours</th>
-                <th className="px-2 py-1 border">KM</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.map((s, i) => (
-                <tr key={i} className="even:bg-gray-50">
-                  <td className="px-2 py-1 border font-mono">{s.user_id}</td>
-                  <td className="px-2 py-1 border">{s.nickname || '-'}</td>
-                  <td className="px-2 py-1 border">{s.date}</td>
-                  <td className="px-2 py-1 border text-center">{s.orders_delivered}</td>
-                  <td className="px-2 py-1 border text-right">{Number(s.profit).toFixed(2)}</td>
-                  <td className="px-2 py-1 border text-center">{s.hours_worked}</td>
-                  <td className="px-2 py-1 border text-center">{s.km_driven}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto mb-6">
+            <DataTable columns={statsColumns} data={stats} className="min-w-full text-xs md:text-sm border shadow rounded-lg overflow-x-auto" />
+          </div>
           <h4 className="mt-6 mb-2 text-left font-semibold">Totals per Driver</h4>
-          <table className="min-w-full text-xs md:text-sm border">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="px-2 py-1 border">User ID</th>
-                <th className="px-2 py-1 border">Nickname</th>
-                <th className="px-2 py-1 border">Orders</th>
-                <th className="px-2 py-1 border">Profit (€)</th>
-                <th className="px-2 py-1 border">Hours</th>
-                <th className="px-2 py-1 border">KM</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(userTotals).map(([uid, t]) => (
-                <tr key={uid} className="even:bg-gray-50">
-                  <td className="px-2 py-1 border font-mono">{uid}</td>
-                  <td className="px-2 py-1 border">{t.nickname || '-'}</td>
-                  <td className="px-2 py-1 border text-center">{t.orders}</td>
-                  <td className="px-2 py-1 border text-right">{t.profit.toFixed(2)}</td>
-                  <td className="px-2 py-1 border text-center">{t.hours}</td>
-                  <td className="px-2 py-1 border text-center">{t.km}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <DataTable columns={totalsColumns} data={totalsData} className="min-w-full text-xs md:text-sm border shadow rounded-lg overflow-x-auto" />
+          </div>
         </>
       )}
     </div>
@@ -868,7 +822,7 @@ function AdminChatPanel({ adminPassword }) {
   );
 }
 
-function ProductManagementPanel({ mainAdminPassword }) {
+function ProductManagementPanel() {
   const [products, setProducts] = useState([]);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', main_price: '', price_1: '', price_2: '', price_3: '', image_url: '', available: true });
@@ -937,7 +891,6 @@ function ProductManagementPanel({ mainAdminPassword }) {
         price_1,
         price_2,
         price_3,
-        password: mainAdminPassword
       };
       if (editing) body.id = editing;
       const method = editing ? 'PUT' : 'POST';
@@ -963,7 +916,7 @@ function ProductManagementPanel({ mainAdminPassword }) {
       const res = await fetch('/api/products', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, password: mainAdminPassword })
+        body: JSON.stringify({ id })
       });
       if (!res.ok) throw new Error('Failed to remove');
       fetchProducts();
@@ -1001,6 +954,22 @@ function ProductManagementPanel({ mainAdminPassword }) {
       setLoading(false);
     }
   };
+  // Define columns for DataTable
+  const columns = [
+    { accessorKey: 'id', header: 'ID', cell: info => info.getValue() },
+    { accessorKey: 'name', header: 'Name', cell: info => info.getValue() },
+    { accessorKey: 'price_1', header: 'Price 1pc (€)', cell: info => Number(info.getValue()).toFixed(2) },
+    { accessorKey: 'price_2', header: 'Price 2pcs (€)', cell: info => Number(info.getValue()).toFixed(2) },
+    { accessorKey: 'price_3', header: 'Price 3pcs (€)', cell: info => Number(info.getValue()).toFixed(2) },
+    { accessorKey: 'image_url', header: 'Image', cell: info => info.getValue() ? <img src={info.getValue()} alt="" className="w-10 h-10 object-cover rounded" /> : null },
+    { accessorKey: 'available', header: 'Available', cell: info => info.getValue() ? 'Yes' : 'No' },
+    { id: 'actions', header: 'Actions', cell: ({ row }) => (
+      <div className="flex gap-2">
+        <button className="text-blue-600 hover:underline text-xs mr-2" onClick={() => handleEdit(row.original)}>Edit</button>
+        <button className="text-red-600 hover:underline text-xs" onClick={() => handleRemove(row.original.id)}>Remove</button>
+      </div>
+    ) },
+  ];
   return (
     <div>
       <div className="mb-4 flex flex-col gap-3">
@@ -1076,37 +1045,7 @@ function ProductManagementPanel({ mainAdminPassword }) {
       </div>
       {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
       <div className="overflow-x-auto mb-6">
-        <table className="min-w-full text-xs md:text-sm border shadow rounded-lg overflow-hidden">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="px-2 py-1 border">ID</th>
-              <th className="px-2 py-1 border">Name</th>
-              <th className="px-2 py-1 border">Price 1pc (€)</th>
-              <th className="px-2 py-1 border">Price 2pcs (€)</th>
-              <th className="px-2 py-1 border">Price 3pcs (€)</th>
-              <th className="px-2 py-1 border">Image</th>
-              <th className="px-2 py-1 border">Available</th>
-              <th className="px-2 py-1 border">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map(p => (
-              <tr key={p.id} className="even:bg-gray-50 hover:bg-blue-50 transition-colors">
-                <td className="px-2 py-1 border text-center">{p.id}</td>
-                <td className="px-2 py-1 border font-semibold">{p.name}</td>
-                <td className="px-2 py-1 border text-right">{p.price_1 ? Number(p.price_1).toFixed(2) : '-'}</td>
-                <td className="px-2 py-1 border text-right">{p.price_2 ? Number(p.price_2).toFixed(2) : '-'}</td>
-                <td className="px-2 py-1 border text-right">{p.price_3 ? Number(p.price_3).toFixed(2) : '-'}</td>
-                <td className="px-2 py-1 border text-center">{p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 object-cover rounded" />}</td>
-                <td className="px-2 py-1 border text-center">{p.available ? 'Yes' : 'No'}</td>
-                <td className="px-2 py-1 border text-center">
-                  <button className="text-blue-600 hover:underline text-xs mr-2" onClick={() => handleEdit(p)}>Edit</button>
-                  <button className="text-red-600 hover:underline text-xs" onClick={() => handleRemove(p.id)}>Remove</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable columns={columns} data={products} className="min-w-full text-xs md:text-sm border shadow rounded-lg overflow-x-auto" />
       </div>
       <div className="mb-2 flex gap-2 items-center">
         <span className="text-xs">Statistikos laikotarpis:</span>
@@ -1254,7 +1193,7 @@ function RouteOptimizerPanel({ orders }) {
         </button>
       </div>
       {loading && <div className="text-blue-600">Calculating...</div>}
-      {error && <div className="text-red-600 mb-2">{error}</div>}
+      {error && <div className="text-red-600 mb-2 font-semibold">{error}</div>}
       {route.length > 0 && (
         <div className="mt-4">
           <h4 className="font-semibold mb-2">Recommended Delivery Order:</h4>

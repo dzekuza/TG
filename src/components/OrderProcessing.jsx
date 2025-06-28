@@ -72,8 +72,17 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
           return (
             <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-2xl">{product.emoji}</span>
+                <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover rounded-xl"
+                      onError={e => { e.target.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <span className="text-2xl">{product.emoji}</span>
+                  )}
                 </div>
                 <div className="flex-1">
                   <h3 className="mb-1">{product.name}</h3>
@@ -132,45 +141,7 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
             value={address}
             onChange={e => setAddress(e.target.value)}
           />
-          <button
-            type="button"
-            className="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-blue-200"
-            onClick={() => window.open('https://maps.google.com', '_blank')}
-          >
-            Gauti adresą
-          </button>
-          <button
-            type="button"
-            className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-gray-200"
-            onClick={async () => {
-              const text = await navigator.clipboard.readText();
-              setAddress(text);
-            }}
-          >
-            Įklijuoti vietą
-          </button>
         </div>
-        <button
-          type="button"
-          className="mt-2 w-full bg-green-100 text-green-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-green-200"
-          onClick={() => {
-            if (navigator.geolocation) {
-              navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                  const { latitude, longitude } = pos.coords;
-                  setAddress(`https://www.google.com/maps?q=${latitude},${longitude}`);
-                },
-                (err) => {
-                  alert('Nepavyko gauti vietos. Prašome leisti prieigą prie vietos.');
-                }
-              );
-            } else {
-              alert('Jūsų naršyklė nepalaiko vietos nustatymo.');
-            }
-          }}
-        >
-          Gauti mano vietą
-        </button>
       </div>
 
       {/* Comments area */}
@@ -204,47 +175,6 @@ export function OrderProcessing({ products, cart, onQuantityChange, onClearCart,
         >
           Patvirtinti užsakymą
         </button>
-        {window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openInvoice && (
-          <button
-            disabled={loadingPay}
-            onClick={async () => {
-              if (!isValidAddress(address)) {
-                alert('Įveskite galiojantį Google Maps adresą prieš mokėdami per Telegram.');
-                return;
-              }
-              setLoadingPay(true);
-              try {
-                // Call backend to create invoice and get slug
-                const res = await fetch('/api/create-telegram-invoice', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    items: cartItems.map(product => ({
-                      id: product.id,
-                      name: product.name,
-                      price: getProductTotal(product, cart[product.id]),
-                      qty: cart[product.id],
-                      emoji: product.emoji || ''
-                    })),
-                    total: baseTotal,
-                    address,
-                    comment
-                  })
-                });
-                const data = await res.json();
-                if (!data.slug) throw new Error('Nepavyko gauti sąskaitos iš Telegram');
-                window.Telegram.WebApp.openInvoice({ slug: data.slug });
-              } catch (e) {
-                alert('Nepavyko inicijuoti mokėjimo per Telegram: ' + (e.message || e));
-              } finally {
-                setLoadingPay(false);
-              }
-            }}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 transition-colors rounded-xl p-4 text-white"
-          >
-            {loadingPay ? 'Kraunama...' : 'Mokėti su Telegram'}
-          </button>
-        )}
       </div>
     </div>
   );

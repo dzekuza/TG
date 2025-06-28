@@ -22,10 +22,15 @@ export default async function handler(req, res) {
   }
   if (req.method === 'POST') {
     const { order_id, status, comment, eta, driver_location, admin_note, user_id } = req.body;
+    // If eta is a number or string, treat as minutes and convert to timestamp
+    let etaValue = eta;
+    if (eta && !isNaN(Number(eta))) {
+      etaValue = new Date(Date.now() + Number(eta) * 60000).toISOString();
+    }
     // Update order in DB
     await query(
       `UPDATE orders SET status=$1, comment=$2, eta=$3, driver_location=$4, updated_at=NOW() WHERE order_id=$5`,
-      [status, comment, eta, driver_location, order_id]
+      [status, comment, etaValue, driver_location, order_id]
     );
     // If admin_note and user_id provided, upsert note
     if (admin_note && user_id) {

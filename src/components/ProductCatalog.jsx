@@ -34,7 +34,7 @@ export function ProductCatalog({ products, cart, onQuantityChange, onGoToCart })
           className="fixed left-1/2 -translate-x-1/2 bottom-20 z-30 bg-blue-600 text-white px-8 py-3 rounded-full shadow-lg text-lg font-semibold flex items-center gap-2 animate-fade-in"
           onClick={onGoToCart}
         >
-          🛒 Į krepšelį ({totalItems})
+          Į krepšelį ({totalItems})
         </button>
       )}
     </div>

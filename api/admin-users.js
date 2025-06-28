@@ -1,14 +1,6 @@
 import { query } from './db.js';
 
-const ADMIN_PASSWORD = process.env.MAIN_ADMIN_PASSWORD || 'mainadmin';
-
 export default async function handler(req, res) {
-  const { password } = req.method === 'GET' ? req.query : req.body;
-  if (password !== ADMIN_PASSWORD) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-
   if (req.method === 'POST') {
     const { user_id, nickname } = req.body;
     if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
