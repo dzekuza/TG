@@ -19,24 +19,28 @@ export default async function handler(req, res) {
   const form = formidable();
 
   form.parse(req, async (err, fields, files) => {
-    if (err) return res.status(500).json({ error: 'Error parsing form data' });
+    if (err) {
+      console.error('Formidable error:', err);
+      return res.status(500).json({ error: 'Error parsing form data' });
+    }
 
-    // Log files object for debugging
-    console.log('Formidable files:', files);
-
-    // Support any field name, fallback to first file, and handle array
     let file = files.file || Object.values(files)[0];
     if (Array.isArray(file)) file = file[0];
     if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
     let fileData;
-    if (file.filepath) {
-      fileData = fs.readFileSync(file.filepath);
-    } else if (file.buffer) {
-      fileData = file.buffer;
-    } else {
-      console.error('File object:', file);
-      return res.status(400).json({ error: 'File data not found' });
+    try {
+      if (file.filepath) {
+        fileData = await fs.promises.readFile(file.filepath);
+      } else if (file.buffer) {
+        fileData = file.buffer;
+      } else {
+        console.error('File object:', file);
+        return res.status(400).json({ error: 'File data not found' });
+      }
+    } catch (readErr) {
+      console.error('File read error:', readErr);
+      return res.status(500).json({ error: 'Failed to read uploaded file' });
     }
 
     const fileName = `prod/${Date.now()}-${file.originalFilename || file.newFilename || 'upload'}`;
@@ -46,8 +50,18 @@ export default async function handler(req, res) {
         contentType: file.mimetype,
         upsert: false,
       });
-    if (error) return res.status(500).json({ error: error.message });
-    const { data: publicUrlData } = supabase.storage.from('prod').getPublicUrl(fileName);
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    const { data: publicUrlData, error: urlError } = supabase.storage.from('prod').getPublicUrl(fileName);
+    if (urlError || !publicUrlData || !publicUrlData.publicUrl) {
+      console.error('Supabase public URL error:', urlError);
+      return res.status(500).json({ error: 'Failed to get public URL' });
+    }
+
     res.status(200).json({ url: publicUrlData.publicUrl });
   });
 } 

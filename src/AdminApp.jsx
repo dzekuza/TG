@@ -988,10 +988,7 @@ function ProductManagementPanel() {
   ];
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Produktų valdymas</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={() => setShowModal(true)}>+ Pridėti naują</button>
-      </div>
+      <h2 className="text-xl font-semibold mb-4">Produktų valdymas</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         {products.map(product => (
           <div key={product.id} className="relative group">
