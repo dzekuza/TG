@@ -25,7 +25,9 @@ export function ProductCard({ product, quantity, onQuantityChange, hideQuantityC
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
       <div className="flex flex-col items-start text-left">
         <div className="w-16 h-16 mb-3 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
-          {product.image_url ? (
+          {["💎", "❄️", "💊"].includes(product.image_url) ? (
+            <span className="text-3xl">{product.image_url}</span>
+          ) : product.image_url ? (
             <img
               src={product.image_url}
               alt={product.name}
