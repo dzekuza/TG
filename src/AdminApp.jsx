@@ -540,136 +540,31 @@ export default function AdminApp() {
             </div>
           </div>
         )}
-        {activeNav === 'admin' && (
-          <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
-            <h2 className="text-2xl font-bold mb-4">Vairuotojo statistika</h2>
-            <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl text-center mb-8">
-              <DriverStatsPanel />
-            </div>
-            {/* Product management */}
-            <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl mb-8">
-              <h2 className="text-xl font-semibold mb-4">Produktų valdymas</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                {products.map(product => (
-                  <div key={product.id} className="relative group">
-                    <ProductCard product={product} quantity={0} onQuantityChange={() => {}} />
-                    <button
-                      className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs opacity-90 group-hover:opacity-100"
-                      onClick={() => { setEditing(product.id); setShowModal(true); handleEdit(product); }}
-                    >Redaguoti</button>
-                    <button
-                      className="absolute bottom-2 right-2 bg-gray-700 text-white px-2 py-1 rounded text-xs opacity-80 group-hover:opacity-100"
-                      onClick={() => setShowStats(product)}
-                    >Statistika</button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-center mb-8">
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={() => { setEditing(null); setForm({ name: '', price_ranges: [{ price: '', min: '', max: '' }], image_url: '', available: true }); setImagePreview(''); setShowModal(true); }}>
-                  + Pridėti naują
-                </button>
-              </div>
-              {/* Slide-in modal for add/edit */}
-              {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => { setShowModal(false); handleCancel(); }}>
-                  <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto animate-slide-in-up" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-lg font-semibold mb-4">{editing ? 'Redaguoti produktą' : 'Pridėti naują produktą'}</h3>
-                    <div className="mb-4 flex flex-col gap-3">
-                      <input
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        name="name"
-                        placeholder="Product name"
-                        value={form.name}
-                        onChange={handleFormChange}
-                      />
-                      <div className="flex flex-col gap-2">
-                        {form.price_ranges.map((range, idx) => (
-                          <div className="flex gap-2 items-center" key={idx}>
-                            <input
-                              className="w-1/3 px-2 py-2 border border-gray-300 rounded-lg"
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder="Price (€)"
-                              value={range.price}
-                              onChange={e => handlePriceRangeChange(idx, 'price', e.target.value)}
-                            />
-                            <input
-                              className="w-1/4 px-2 py-2 border border-gray-300 rounded-lg"
-                              type="number"
-                              min="1"
-                              step="1"
-                              placeholder="Min q."
-                              value={range.min}
-                              onChange={e => handlePriceRangeChange(idx, 'min', e.target.value)}
-                            />
-                            <input
-                              className="w-1/4 px-2 py-2 border border-gray-300 rounded-lg"
-                              type="number"
-                              min="1"
-                              step="1"
-                              placeholder="Max q."
-                              value={range.max}
-                              onChange={e => handlePriceRangeChange(idx, 'max', e.target.value)}
-                            />
-                            <button
-                              type="button"
-                              className="text-red-500 text-lg px-2"
-                              onClick={() => handleRemovePriceRange(idx)}
-                              disabled={form.price_ranges.length === 1}
-                            >
-                              &times;
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          className="text-blue-600 text-sm mt-1 self-start"
-                          onClick={handleAddPriceRange}
-                        >
-                          + Add more
-                        </button>
-                      </div>
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="block"
-                          onChange={handleImageChange}
-                        />
-                        {imagePreview && <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />}
-                      </div>
-                      <label className="flex items-center gap-1 text-xs">
-                        <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} /> Available
-                      </label>
-                      {error && <div className="text-red-600 text-xs mt-1">{error}</div>}
-                    </div>
-                    <button className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={handleSave} disabled={loading}>{editing ? 'Išsaugoti pakeitimus' : 'Išsaugoti'}</button>
-                    <button className="mt-2 w-full text-gray-500 hover:underline" onClick={() => { setShowModal(false); handleCancel(); }}>Atšaukti</button>
-                  </div>
-                </div>
-              )}
-              {/* Modal for product stats */}
-              {showStats && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => setShowStats(null)}>
-                  <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto animate-slide-in-up" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-lg font-semibold mb-4">Statistika: {showStats.name}</h3>
-                    <div>Produktas parduotas: <span className="font-bold">{stats.find(s => s.name === showStats.name)?.count || 0}</span> vnt.</div>
-                    <button className="mt-4 w-full text-gray-500 hover:underline" onClick={() => setShowStats(null)}>Uždaryti</button>
-                  </div>
-                </div>
-              )}
-            </div>
-            {/* Admin user management */}
-            <div className="bg-white rounded-xl shadow p-6 w-full max-w-lg">
-              <h3 className="text-lg font-semibold mb-2">Administratoriai</h3>
-              <AdminUsersPanel />
-            </div>
-          </div>
-        )}
+        {activeNav === 'admin' && <AdminTabWithErrorBoundary />}
       </div>
     </div>
   );
+}
+
+function AdminTabWithErrorBoundary() {
+  try {
+    return (
+      <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
+        <h2 className="text-2xl font-bold mb-4">Vairuotojo statistika</h2>
+        <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl text-center mb-8">
+          <DriverStatsPanel />
+        </div>
+        {/* Product management */}
+        <div className="bg-white rounded-xl shadow p-6 w-full max-w-4xl mb-8">
+          <h2 className="text-xl font-semibold mb-4">Produktų valdymas</h2>
+          <ProductManagementPanel />
+        </div>
+      </div>
+    );
+  } catch (err) {
+    console.error('Error rendering admin tab:', err);
+    return <div className="text-red-600 text-center">Klaida admin skiltyje: {String(err)}</div>;
+  }
 }
 
 function AdminUsersPanel() {
@@ -949,9 +844,11 @@ function ProductManagementPanel() {
     try {
       const res = await fetch('/api/products');
       const data = await res.json();
+      console.log('Fetched products:', data.products);
       setProducts(data.products || []);
-    } catch {
+    } catch (err) {
       setError('Error loading products');
+      console.error('Error loading products:', err);
     } finally {
       setLoading(false);
     }
