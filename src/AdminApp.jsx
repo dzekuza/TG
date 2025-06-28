@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Clock, MessageSquare, MapPin, Calendar, CheckCircle, AlertCircle, Package, Truck, RefreshCw, Users, Inbox } from 'lucide-react';
 import { DataTable } from './components/ui/data-table';
+import { ProductCard } from './components/ProductCard';
 
 const getStatusConfig = (status) => {
   switch (status) {
@@ -233,7 +234,7 @@ export default function AdminApp() {
           className={`flex-1 flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${activeNav === 'admin' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
         >
           <Users className="w-5 h-5" />
-          <span className="text-xs font-semibold">⚡ Administratorius</span>
+          <span className="text-xs font-semibold">admin</span>
         </button>
       </div>
     </div>
@@ -626,21 +627,21 @@ function AdminUsersPanel() {
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-col md:flex-row gap-2 mb-4 max-w-xl">
         <input
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+          className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg max-w-xs"
           placeholder="User ID"
           value={userId}
           onChange={e => setUserId(e.target.value)}
         />
         <input
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+          className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg max-w-xs"
           placeholder="Nickname (optional)"
           value={nickname}
           onChange={e => setNickname(e.target.value)}
         />
         <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 whitespace-nowrap"
           onClick={handleAdd}
           disabled={loading}
         >Pridėti</button>
@@ -829,6 +830,8 @@ function ProductManagementPanel() {
   const [stats, setStats] = useState([]);
   const [statsPeriod, setStatsPeriod] = useState('month');
   const [imagePreview, setImagePreview] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showStats, setShowStats] = useState(null); // product for stats
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -970,90 +973,114 @@ function ProductManagementPanel() {
   ];
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-3">
-        <input
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          name="name"
-          placeholder="Product name"
-          value={form.name}
-          onChange={handleFormChange}
-        />
-        <input
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          name="main_price"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="Main price (€)"
-          value={form.main_price}
-          onChange={handleFormChange}
-        />
-        <div className="flex gap-2">
-          <input
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            name="price_1"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Price for 1 piece (€)"
-            value={form.price_1}
-            onChange={handleFormChange}
-          />
-          <input
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            name="price_2"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Price for 2 pieces (€)"
-            value={form.price_2}
-            onChange={handleFormChange}
-          />
-          <input
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            name="price_3"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Price for 3 pieces (€)"
-            value={form.price_3}
-            onChange={handleFormChange}
-          />
-        </div>
-        <div className="flex gap-2 items-center">
-          <input
-            type="file"
-            accept="image/*"
-            className="block"
-            onChange={handleImageChange}
-          />
-          {imagePreview && <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />}
-        </div>
-        <label className="flex items-center gap-1 text-xs">
-          <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} /> Available
-        </label>
-        <div className="flex gap-2">
-          <button
-            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
-            onClick={handleSave}
-            disabled={loading || !form.name || !form.price_1}
-          >{editing ? 'Save' : 'Add'}</button>
-          {editing && <button className="flex-1 text-xs text-gray-500 hover:underline" onClick={handleCancel}>Cancel</button>}
-        </div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Produktų valdymas</h2>
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={() => setShowModal(true)}>+ Pridėti naują</button>
       </div>
-      {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
-      <div className="overflow-x-auto mb-6">
-        <DataTable columns={columns} data={products} className="min-w-full text-xs md:text-sm border shadow rounded-lg overflow-x-auto" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        {products.map(product => (
+          <div key={product.id} className="relative group">
+            <ProductCard product={product} quantity={0} onQuantityChange={() => {}} />
+            <button
+              className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs opacity-90 group-hover:opacity-100"
+              onClick={() => setEditing(product.id)}
+            >Redaguoti</button>
+            <button
+              className="absolute bottom-2 right-2 bg-gray-700 text-white px-2 py-1 rounded text-xs opacity-80 group-hover:opacity-100"
+              onClick={() => setShowStats(product)}
+            >Statistika</button>
+          </div>
+        ))}
       </div>
-      <div className="mb-2 flex gap-2 items-center">
-        <span className="text-xs">Statistikos laikotarpis:</span>
-        <select className="border rounded px-2 py-1 text-xs" value={statsPeriod} onChange={e => setStatsPeriod(e.target.value)}>
-          <option value="day">Diena</option>
-          <option value="week">Savaitė</option>
-          <option value="month">Mėnuo</option>
-        </select>
-      </div>
-      <ProductStatsGraph stats={stats} period={statsPeriod} />
+      {/* Slide-in modal for add/edit */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto animate-slide-in-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-4">Pridėti naują produktą</h3>
+            <div className="mb-4 flex flex-col gap-3">
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                name="name"
+                placeholder="Product name"
+                value={form.name}
+                onChange={handleFormChange}
+              />
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                name="main_price"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Main price (€)"
+                value={form.main_price}
+                onChange={handleFormChange}
+              />
+              <div className="flex gap-2">
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  name="price_1"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Price for 1 piece (€)"
+                  value={form.price_1}
+                  onChange={handleFormChange}
+                />
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  name="price_2"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Price for 2 pieces (€)"
+                  value={form.price_2}
+                  onChange={handleFormChange}
+                />
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  name="price_3"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Price for 3 pieces (€)"
+                  value={form.price_3}
+                  onChange={handleFormChange}
+                />
+              </div>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="block"
+                  onChange={handleImageChange}
+                />
+                {imagePreview && <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />}
+              </div>
+              <label className="flex items-center gap-1 text-xs">
+                <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} /> Available
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button
+                className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold"
+                onClick={handleSave}
+                disabled={loading || !form.name || !form.price_1}
+              >Išsaugoti</button>
+              <button className="mt-2 w-full text-gray-500 hover:underline" onClick={() => setShowModal(false)}>Atšaukti</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal for product stats */}
+      {showStats && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end md:items-center justify-center z-50" onClick={() => setShowStats(null)}>
+          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg p-6 w-full max-w-md mx-auto animate-slide-in-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-4">Statistika: {showStats.name}</h3>
+            <div>Produktas parduotas: <span className="font-bold">{stats.find(s => s.name === showStats.name)?.count || 0}</span> vnt.</div>
+            <button className="mt-4 w-full text-gray-500 hover:underline" onClick={() => setShowStats(null)}>Uždaryti</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1096,6 +1123,8 @@ function RouteOptimizerPanel({ orders }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [etaMap, setEtaMap] = useState({});
+  const [driverLocation, setDriverLocation] = useState(null);
+  const [locating, setLocating] = useState(false);
 
   // Helper: filter active orders
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'arriving');
@@ -1113,83 +1142,102 @@ function RouteOptimizerPanel({ orders }) {
     return null;
   }
 
-  const handleOptimize = async () => {
-    setLoading(true); setError(''); setRoute([]); setEtaMap({});
-    // 1. Get driver location
+  const handleFetchLocation = () => {
+    setLocating(true); setError('');
     if (!navigator.geolocation) {
       setError('Geolocation not supported');
+      setLocating(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setDriverLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocating(false);
+      },
+      (err) => {
+        setError('Failed to get driver location');
+        setLocating(false);
+      }
+    );
+  };
+
+  const handleOptimize = async () => {
+    setLoading(true); setError(''); setRoute([]); setEtaMap({});
+    if (!driverLocation) {
+      setError('Pirma gaukite savo lokaciją');
       setLoading(false);
       return;
     }
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const driverLat = pos.coords.latitude;
-      const driverLng = pos.coords.longitude;
-      const order_ids = activeOrders.map(o => o.order_id);
-      if (!order_ids.length) {
-        setError('No active orders to optimize');
+    const order_ids = activeOrders.map(o => o.order_id);
+    if (!order_ids.length) {
+      setError('No active orders to optimize');
+      setLoading(false);
+      return;
+    }
+    try {
+      // 2. Call backend to get optimal route and ETAs
+      const res = await fetch('/api/optimize-route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_ids,
+          driver_location: driverLocation
+        })
+      });
+      const data = await res.json();
+      if (!data.route) {
+        setError('No route found');
         setLoading(false);
         return;
       }
-      try {
-        // 2. Call backend to get optimal route and ETAs
-        const res = await fetch('/api/optimize-route', {
+      setRoute(data.route);
+      // 3. Use Google-provided ETAs
+      const etaMapNew = {};
+      data.route.forEach((order_id, idx) => {
+        etaMapNew[order_id] = data.etas && data.etas[idx] ? data.etas[idx] : '';
+      });
+      setEtaMap(etaMapNew);
+      // 4. Update each order's ETA in backend
+      for (const [idx, order_id] of data.route.entries()) {
+        const etaVal = etaMapNew[order_id];
+        const order = activeOrders.find(o => o.order_id === order_id);
+        if (!order) continue;
+        await fetch('/api/admin-orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            order_ids,
-            driver_location: { lat: driverLat, lng: driverLng }
+            order_id,
+            status: order.status,
+            comment: order.comment,
+            eta: String(etaVal),
+            driver_location: JSON.stringify(parseLatLng(order.location)),
+            admin_note: order.admin_note,
+            user_id: order.user_id
           })
         });
-        const data = await res.json();
-        if (!data.route) {
-          setError('No route found');
-          setLoading(false);
-          return;
-        }
-        setRoute(data.route);
-        // 3. Use Google-provided ETAs
-        const etaMapNew = {};
-        data.route.forEach((order_id, idx) => {
-          etaMapNew[order_id] = data.etas && data.etas[idx] ? data.etas[idx] : '';
-        });
-        setEtaMap(etaMapNew);
-        // 4. Update each order's ETA in backend
-        for (const [idx, order_id] of data.route.entries()) {
-          const etaVal = etaMapNew[order_id];
-          const order = activeOrders.find(o => o.order_id === order_id);
-          if (!order) continue;
-          await fetch('/api/admin-orders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              order_id,
-              status: order.status,
-              comment: order.comment,
-              eta: String(etaVal),
-              driver_location: JSON.stringify(parseLatLng(order.location)),
-              admin_note: order.admin_note,
-              user_id: order.user_id
-            })
-          });
-        }
-      } catch (e) {
-        setError('Failed to optimize route');
-      } finally {
-        setLoading(false);
       }
-    }, (err) => {
-      setError('Failed to get driver location');
+    } catch (e) {
+      setError('Failed to optimize route');
+    } finally {
       setLoading(false);
-    });
+    }
   };
 
   return (
     <div>
       <div className="mb-4 flex flex-col gap-2">
-        <button className="mt-2 bg-blue-600 text-white px-4 py-2 rounded font-semibold disabled:opacity-50" onClick={handleOptimize} disabled={loading || !activeOrders.length}>
-          Optimize Route
-        </button>
+        <button
+          className="bg-gray-200 text-gray-800 px-4 py-2 rounded font-semibold mb-2"
+          onClick={handleFetchLocation}
+          disabled={locating}
+        >{locating ? 'Gaunama lokacija...' : (driverLocation ? 'Lokacija gauta' : 'Gauti mano lokaciją')}</button>
+        <button
+          className="mt-2 bg-blue-600 text-white px-4 py-2 rounded font-semibold disabled:opacity-50"
+          onClick={handleOptimize}
+          disabled={loading || !activeOrders.length || !driverLocation}
+        >Optimize Route</button>
       </div>
+      {driverLocation && <div className="text-xs text-green-700 mb-2">Lokacija: {driverLocation.lat.toFixed(5)}, {driverLocation.lng.toFixed(5)}</div>}
       {loading && <div className="text-blue-600">Calculating...</div>}
       {error && <div className="text-red-600 mb-2 font-semibold">{error}</div>}
       {route.length > 0 && (
