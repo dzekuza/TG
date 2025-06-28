@@ -53,7 +53,7 @@ export default function App() {
       const response = await fetch(`/api/orders?user_id=${userId}`);
       const data = await response.json();
       if (data.orders) {
-        setPastOrders(data.orders);
+        setPastOrders(data.orders.filter(o => !o.deleted));
       }
     } catch (error) {
       console.error('Error loading past orders:', error);
@@ -165,7 +165,7 @@ export default function App() {
           />
         );
       case 'history':
-        return <PastOrders orders={pastOrders} />;
+        return <PastOrders orders={pastOrders} userId={user?.id} />;
       default:
         return null;
     }

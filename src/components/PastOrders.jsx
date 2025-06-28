@@ -76,7 +76,7 @@ const formatDate = (dateString) => {
   }
 };
 
-export function PastOrders({ orders = [] }) {
+export function PastOrders({ orders = [], userId }) {
   const [hiddenOrders, setHiddenOrders] = useState([]);
 
   // Helper for live ETA countdown (timestamp version)
@@ -98,6 +98,23 @@ export function PastOrders({ orders = [] }) {
     }, [etaTimestamp]);
     return remaining;
   }
+
+  const handleDelete = async (orderId) => {
+    try {
+      const res = await fetch(`/api/orders?user_id=${userId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId })
+      });
+      if (res.ok) {
+        setHiddenOrders(prev => [...prev, orderId]);
+      } else {
+        alert('Failed to delete order');
+      }
+    } catch {
+      alert('Failed to delete order');
+    }
+  };
 
   if (orders.length === 0) {
     return (
@@ -159,7 +176,7 @@ export function PastOrders({ orders = [] }) {
               {/* Delete button */}
               <button
                 className="absolute top-3 right-3 bg-red-100 text-red-700 rounded-full px-3 py-1 text-xs font-semibold hover:bg-red-200"
-                onClick={() => setHiddenOrders(prev => [...prev, order.order_id])}
+                onClick={() => handleDelete(order.order_id)}
                 title="Pašalinti šį užsakymą iš sąrašo"
               >
                 Pašalinti

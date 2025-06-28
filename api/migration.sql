@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS orders (
   eta TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  total NUMERIC
+  total NUMERIC,
+  deleted BOOLEAN DEFAULT FALSE
 );
 
 -- Index for fast user order lookup
