@@ -11,10 +11,17 @@ export function ProductCard({ product, quantity, onQuantityChange }) {
     onQuantityChange(product.id, quantity + 1);
   };
 
-  // Calculate discounted prices for 2x and 3x
-  const price1 = typeof product.price === 'number' ? product.price : 0;
-  const price2 = price1 * 2 * 0.95; // 5% off for 2
-  const price3 = price1 * 3 * 0.90; // 10% off for 3
+  // Use admin-set prices for 1, 2, 3 pieces
+  const price1 = typeof product.price_1 === 'number' ? product.price_1 : Number(product.price_1) || 0;
+  const price2 = typeof product.price_2 === 'number' ? product.price_2 : Number(product.price_2) || price1 * 2;
+  const price3 = typeof product.price_3 === 'number' ? product.price_3 : Number(product.price_3) || price1 * 3;
+
+  // Calculate total based on quantity
+  let total = 0;
+  if (quantity === 1) total = price1;
+  else if (quantity === 2) total = price2;
+  else if (quantity === 3) total = price3;
+  else if (quantity > 3) total = price1 * quantity;
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -34,7 +41,7 @@ export function ProductCard({ product, quantity, onQuantityChange }) {
         <h3 className="mb-1 font-semibold text-base">{product.name}</h3>
         <div className="text-xl text-blue-600 mb-1">€{price1.toFixed(2)}</div>
         <div className="text-xs text-gray-500 mb-2">
-          2x €{price2.toFixed(2)}, 3x €{price3.toFixed(2)}
+          2 vnt: €{price2.toFixed(2)}, 3 vnt: €{price3.toFixed(2)}
         </div>
         <div className="flex items-center gap-3 mb-2">
           <button
@@ -54,7 +61,7 @@ export function ProductCard({ product, quantity, onQuantityChange }) {
         </div>
         {quantity > 0 && (
           <div className="text-xs text-gray-500">
-            Total: €{(price1 * quantity).toFixed(2)}
+            Iš viso: €{total.toFixed(2)}
           </div>
         )}
       </div>
