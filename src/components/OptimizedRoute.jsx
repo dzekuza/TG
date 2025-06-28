@@ -149,20 +149,27 @@ export function OptimizedRoute({ adminPassword }) {
 
   // Quick ETA/status handlers
   const handleQuickEta = (order, min) => {
-    updateOrderStatus(order.order_id, order.status, order.comment, String(min), order.driver_location, order.admin_note, order.user_id, order.status);
+    // If pending, auto-change to arriving
+    const origStatus = order.status === 'pending' ? 'pending' : order.status;
+    updateOrderStatus(order.order_id, order.status, order.comment, String(min), order.driver_location, order.admin_note, order.user_id, origStatus);
   };
   const handleCustomEta = (order) => {
     const min = prompt('Enter ETA in minutes:');
     if (min && !isNaN(Number(min))) {
-      updateOrderStatus(order.order_id, order.status, order.comment, String(Number(min)), order.driver_location, order.admin_note, order.user_id, order.status);
+      const origStatus = order.status === 'pending' ? 'pending' : order.status;
+      updateOrderStatus(order.order_id, order.status, order.comment, String(Number(min)), order.driver_location, order.admin_note, order.user_id, origStatus);
     }
+  };
+  // Pakeliui button should always set status to arriving
+  const handleArriving = (order) => {
+    updateOrderStatus(order.order_id, 'arriving', order.comment, order.eta, order.driver_location, order.admin_note, order.user_id, order.status);
   };
 
   if (loading) return <div className="text-center py-12">Kraunama...</div>;
   if (error) return <div className="text-center text-red-600 py-12">{error}</div>;
 
   return (
-    <div className="p-4 pb-20">
+    <div className="p-2 pb-16">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-center text-gray-800 mb-2">🗺️ Route Optimization</h1>
@@ -253,10 +260,8 @@ export function OptimizedRoute({ adminPassword }) {
           }
           return (
             <div key={stop.order_id} className="relative">
-              {index < stops.length - 1 && (
-                <div className={`absolute left-5 top-12 w-0.5 h-16 ${stop.status === 'delivered' ? 'bg-green-200' : 'bg-gray-200'}`}></div>
-              )}
-              <div className={`bg-white rounded-2xl p-4 shadow-sm border ${isActive ? 'border-orange-200 ring-2 ring-orange-100' : 'border-gray-100'} w-full max-w-full`}> 
+              {/* Timeline connector removed */}
+              <div className={`bg-white rounded-2xl p-2 shadow-sm border ${isActive ? 'border-orange-200 ring-2 ring-orange-100' : 'border-gray-100'} w-full max-w-full`}> 
                 <div className="flex items-start gap-4 flex-nowrap">
                   <div className="flex flex-col items-center gap-2 min-w-[48px]">
                     <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${stop.status === 'delivered' ? 'bg-green-100 border-green-300 text-green-700' : isActive ? 'bg-orange-100 border-orange-300 text-orange-700' : 'bg-gray-100 border-gray-300 text-gray-700'}`}>{stop.status === 'delivered' ? (<CheckCircle className="w-5 h-5" />) : (<span>{index + 1}</span>)}</div>
@@ -268,47 +273,20 @@ export function OptimizedRoute({ adminPassword }) {
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h4 className="text-gray-900 text-base truncate max-w-[180px]">{stop.customerName || stop.user_id || stop.order_id}</h4>
                         </div>
-                        {/* No coordinates, no phone, just name */}
+                        <div className="flex items-center gap-1 text-sm text-gray-600 mb-1 flex-wrap break-all">
+                          <MapPin className="w-3 h-3" />
+                          {stop.address ? (
+                            <span className="truncate max-w-[180px]">{stop.address}</span>
+                          ) : loc ? (
+                            <span className="font-mono select-all" title="Copy coordinates">{loc.lat},{loc.lng}</span>
+                          ) : (
+                            <span>-</span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right min-w-[60px]">
-                        <div className={`text-sm font-semibold ${isActive ? 'text-orange-600' : 'text-gray-700'}`}>ETA: {etaMinutes !== null ? `${etaMinutes} min` : '-'}</div>
+                        {/* Add your right-side content here if needed */}
                       </div>
-                    </div>
-                    <div className="flex flex-col gap-1 mb-3 p-2 bg-gray-50 rounded-lg">
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <Package className="w-4 h-4 text-gray-500" />
-                        {items.length === 0 && <span className="text-gray-400 text-sm">No items</span>}
-                        {items.map((item, idx) => (
-                          <span key={idx} className="text-sm text-gray-900 bg-gray-100 rounded px-2 py-0.5 flex items-center gap-1">
-                            {item.emoji || item.image || ''} {item.name || item.meal || ''} <span className="text-gray-500">x{item.qty || item.quantity || 1}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    {stop.comment && (<div className="text-sm text-blue-700 bg-blue-50 p-2 rounded-lg border border-blue-200">📝 {stop.comment}</div>)}
-                    {/* Quick ETA/status buttons */}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {[1, 5, 10].map(min => (
-                        <button
-                          key={min}
-                          onClick={() => handleQuickEta(stop, min)}
-                          className="px-3 py-1 rounded-lg bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 border border-blue-200 transition-colors text-xs"
-                        >
-                          {min} min
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => handleCustomEta(stop)}
-                        className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 border border-gray-200 transition-colors text-xs"
-                      >
-                        Custom
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange(stop, 'arriving')}
-                        className="px-3 py-1 rounded-lg bg-orange-100 text-orange-700 font-semibold hover:bg-orange-200 border border-orange-200 transition-colors text-xs"
-                      >
-                        Pakeliui
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -317,18 +295,6 @@ export function OptimizedRoute({ adminPassword }) {
           );
         })}
       </div>
-      <div className="mt-6 bg-green-50 rounded-2xl p-4 border border-green-100">
-        <div className="flex items-center gap-2 mb-2">
-          <CheckCircle className="w-5 h-5 text-green-600" />
-          <span className="text-green-800">Route Optimized</span>
-        </div>
-        <div className="text-sm text-green-700">
-          This route saves time and distance compared to the original order sequence.
-        </div>
-        <div className="text-xs text-green-600 mt-1">
-          Last updated: {new Date().toLocaleTimeString()}
-        </div>
-      </div>
     </div>
   );
-} 
+}
