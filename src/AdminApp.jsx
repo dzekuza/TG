@@ -146,7 +146,12 @@ export default function AdminApp() {
     }
   };
 
-  const updateOrderStatus = async (orderId, status, comment = '', eta = '', driverLocation = '', adminNote = '', userId = '') => {
+  const updateOrderStatus = async (orderId, status, comment = '', eta = '', driverLocation = '', adminNote = '', userId = '', originalStatus = '') => {
+    // If order is pending and ETA is set, auto-change status to 'arriving'
+    let newStatus = status;
+    if (originalStatus === 'pending' && eta && eta.trim() !== '') {
+      newStatus = 'arriving';
+    }
     setUpdating(prev => ({ ...prev, [orderId]: true }));
     try {
       const response = await fetch('/api/admin-orders', {
@@ -154,7 +159,7 @@ export default function AdminApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           order_id: orderId,
-          status,
+          status: newStatus,
           comment,
           eta,
           driver_location: driverLocation,
@@ -177,7 +182,7 @@ export default function AdminApp() {
   };
 
   const handleStatusChange = async (order, newStatus) => {
-    await updateOrderStatus(order.order_id, newStatus, order.comment, order.eta, order.driver_location, userNotes[order.user_id], order.user_id);
+    await updateOrderStatus(order.order_id, newStatus, order.comment, order.eta, order.driver_location, userNotes[order.user_id], order.user_id, order.status);
   };
 
   const handleNoteChange = (userId, value) => {
@@ -192,11 +197,11 @@ export default function AdminApp() {
     const appended = prevNote ? `${prevNote}\n[${timestamp}] ${newNote}` : `[${timestamp}] ${newNote}`;
     setUserNotes(prev => ({ ...prev, [order.user_id]: appended }));
     setNoteInput(prev => ({ ...prev, [order.user_id]: '' }));
-    await updateOrderStatus(order.order_id, order.status, order.comment, order.eta, order.driver_location, appended, order.user_id);
+    await updateOrderStatus(order.order_id, order.status, order.comment, order.eta, order.driver_location, appended, order.user_id, order.status);
   };
 
   const handleEtaHotkey = async (order, minutes) => {
-    await updateOrderStatus(order.order_id, order.status, order.comment, String(minutes), order.driver_location, userNotes[order.user_id], order.user_id);
+    await updateOrderStatus(order.order_id, order.status, order.comment, String(minutes), order.driver_location, userNotes[order.user_id], order.user_id, order.status);
   };
 
   const removeOrder = async (orderId) => {
@@ -439,7 +444,7 @@ export default function AdminApp() {
                             placeholder="e.g., 15"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             defaultValue={order.eta || ''}
-                            onBlur={(e) => updateOrderStatus(order.order_id, order.status, order.comment, e.target.value, order.driver_location, userNotes[order.user_id], order.user_id)}
+                            onBlur={e => updateOrderStatus(order.order_id, order.status, order.comment, e.target.value, order.driver_location, userNotes[order.user_id], order.user_id, order.status)}
                           />
                         </div>
                       </div>
@@ -512,7 +517,7 @@ export default function AdminApp() {
           <div className="min-h-[300px] flex flex-col items-center justify-center text-gray-700">
             <div className="bg-white rounded-xl shadow p-6 w-full max-w-2xl">
               <h3 className="text-lg font-semibold mb-4">Maršruto optimizavimas</h3>
-              <OptimizedRoute />
+              <OptimizedRoute adminPassword={adminPassword} />
             </div>
           </div>
         )}
@@ -1100,6 +1105,18 @@ function ProductManagementPanel() {
                 </button>
               </div>
               <div className="flex gap-2 items-center">
+                {/* Predefined icon picker */}
+                <div className="flex gap-2 items-center">
+                  {["💎", "❄️", "💊"].map(icon => (
+                    <button
+                      key={icon}
+                      type="button"
+                      className={`text-2xl border rounded p-1 ${form.image_url === icon ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'} hover:bg-blue-100`}
+                      onClick={() => { setForm(f => ({ ...f, image_url: icon })); setImagePreview(''); }}
+                      title={`Use icon ${icon}`}
+                    >{icon}</button>
+                  ))}
+                </div>
                 <input
                   type="file"
                   accept="image/*"
@@ -1107,6 +1124,9 @@ function ProductManagementPanel() {
                   onChange={handleImageChange}
                 />
                 {imagePreview && <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />}
+                {!imagePreview && ["💎", "❄️", "💊"].includes(form.image_url) && (
+                  <span className="text-3xl ml-2">{form.image_url}</span>
+                )}
               </div>
               <label className="flex items-center gap-1 text-xs">
                 <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} /> Available
