@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Clock, MessageSquare, MapPin, Calendar, CheckCircle, AlertCircle, Package, Truck, RefreshCw, Users, Inbox } from 'lucide-react';
-import { upload } from '@vercel/blob';
 import { DataTable } from './components/ui/data-table';
-import { ColumnDef } from '@tanstack/react-table';
 
 const getStatusConfig = (status) => {
   switch (status) {
