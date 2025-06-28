@@ -888,6 +888,7 @@ function ProductManagementPanel() {
   const [form, setForm] = useState({ name: '', price_ranges: [{ price: '', min: '', max: '' }], image_url: '', available: true });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [stats, setStats] = useState([]);
   const [statsPeriod, setStatsPeriod] = useState('month');
   const [imagePreview, setImagePreview] = useState('');
@@ -995,6 +996,8 @@ function ProductManagementPanel() {
       if (!res.ok) throw new Error('Failed to save');
       fetchProducts();
       handleCancel();
+      setSuccess(editing ? 'Product updated successfully!' : 'Product added successfully!');
+      setTimeout(() => setSuccess(''), 2500);
     } catch (err) {
       setError(err.message || 'Error saving product');
     } finally {
@@ -1174,6 +1177,7 @@ function ProductManagementPanel() {
                 <input type="checkbox" name="available" checked={form.available} onChange={handleFormChange} /> Available
               </label>
               {error && <div className="text-red-600 text-xs mt-1">{error}</div>}
+              {success && <div className="text-green-600 text-xs mt-1">{success}</div>}
             </div>
             <button className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={handleSave} disabled={loading}>{editing ? 'Išsaugoti pakeitimus' : 'Išsaugoti'}</button>
             <button className="mt-2 w-full text-gray-500 hover:underline" onClick={() => { setShowModal(false); handleCancel(); }}>Atšaukti</button>

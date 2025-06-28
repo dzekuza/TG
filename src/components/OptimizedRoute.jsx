@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { MapPin, Clock, CheckCircle, Truck, Navigation, Phone, Package, RefreshCw } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 // Haversine formula for distance in km
 function haversine(lat1, lon1, lat2, lon2) {
@@ -192,6 +193,43 @@ export function OptimizedRoute({ adminPassword }) {
     return '...';
   };
 
+  // Handler for drag-and-drop reorder
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const reordered = Array.from(stops);
+    const [removed] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, removed);
+    // Update local order
+    setOrders(prevOrders => {
+      const stopIds = reordered.map(o => o.order_id);
+      const newOrders = prevOrders.slice();
+      let stopIdx = 0;
+      for (let i = 0; i < newOrders.length; i++) {
+        if (stopIds.includes(newOrders[i].order_id)) {
+          newOrders[i] = reordered[stopIdx++];
+        }
+      }
+      return newOrders;
+    });
+    // Recalculate ETAs (simple: 10 min per stop from now)
+    const now = Date.now();
+    const etas = reordered.map((_, idx) => new Date(now + (idx + 1) * 10 * 60000).toISOString());
+    // Persist new order and ETAs to backend
+    fetch('/api/admin-orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        password: adminPassword,
+        order_ids: reordered.map(o => o.order_id),
+        etas
+      })
+    }).then(res => {
+      if (!res.ok) throw new Error('Failed to update order sequence');
+    }).catch(() => {
+      alert('Failed to update delivery order on server');
+    });
+  };
+
   if (loading) return <div className="text-center py-12">Kraunama...</div>;
   if (error) return <div className="text-center text-red-600 py-12">{error}</div>;
   if (stops.length === 0) return <div className="text-center py-12 text-gray-500">No active deliveries</div>;
@@ -246,7 +284,7 @@ export function OptimizedRoute({ adminPassword }) {
           </div>
           <div className="text-sm text-orange-700">
             {currentStop.status === 'arrived' ? 'Arrived at: ' : 'En route to: '}
-            <strong>{currentStop.address || currentStop.order_id}</strong>
+            <strong>{getAddress(currentStop)}</strong>
           </div>
           <div className="text-sm text-orange-600 mt-1">
             ETA: {currentStop.eta || '-'}
@@ -271,51 +309,68 @@ export function OptimizedRoute({ adminPassword }) {
       {/* Route Timeline */}
       <div className="space-y-4">
         <h3 className="text-gray-800">Delivery Schedule</h3>
-        {stops.map((stop, index) => {
-          const statusConfig = getStatusConfig(stop.status);
-          const isActive = index === 0;
-          const loc = parseLatLng(stop.location);
-          const dist = stopDistances[index]?.toFixed(2);
-          const items = parseItems(stop.items);
-          // ETA in minutes (if ISO or timestamp, convert)
-          let etaMinutes = null;
-          if (stop.eta && !isNaN(Number(stop.eta))) {
-            etaMinutes = Number(stop.eta);
-          } else if (stop.eta && !isNaN(Date.parse(stop.eta))) {
-            const etaDate = new Date(stop.eta);
-            const now = new Date();
-            etaMinutes = Math.max(0, Math.round((etaDate - now) / 60000));
-          }
-          return (
-            <div key={stop.order_id} className="relative">
-              {/* Timeline connector removed */}
-              <div className={`bg-white rounded-2xl p-2 shadow-sm border ${isActive ? 'border-orange-200 ring-2 ring-orange-100' : 'border-gray-100'} w-full max-w-full`}> 
-                <div className="flex items-start gap-4 flex-nowrap">
-                  <div className="flex flex-col items-center gap-2 min-w-[48px]">
-                    <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${stop.status === 'delivered' ? 'bg-green-100 border-green-300 text-green-700' : isActive ? 'bg-orange-100 border-orange-300 text-orange-700' : 'bg-gray-100 border-gray-300 text-gray-700'}`}>{stop.status === 'delivered' ? (<CheckCircle className="w-5 h-5" />) : (<span>{index + 1}</span>)}</div>
-                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>{statusConfig.icon}<span>{statusConfig.label}</span></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2 flex-wrap">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h4 className="text-gray-900 text-base truncate max-w-[180px]">{stop.customerName || stop.user_id || stop.order_id}</h4>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="stops">
+            {(provided) => (
+              <div ref={provided.innerRef} {...provided.droppableProps}>
+                {stops.map((stop, index) => {
+                  const statusConfig = getStatusConfig(stop.status);
+                  const isActive = index === 0;
+                  const loc = parseLatLng(stop.location);
+                  const dist = stopDistances[index]?.toFixed(2);
+                  const items = parseItems(stop.items);
+                  // ETA in minutes (if ISO or timestamp, convert)
+                  let etaMinutes = null;
+                  if (stop.eta && !isNaN(Number(stop.eta))) {
+                    etaMinutes = Number(stop.eta);
+                  } else if (stop.eta && !isNaN(Date.parse(stop.eta))) {
+                    const etaDate = new Date(stop.eta);
+                    const now = new Date();
+                    etaMinutes = Math.max(0, Math.round((etaDate - now) / 60000));
+                  }
+                  return (
+                    <Draggable key={stop.order_id} draggableId={String(stop.order_id)} index={index}>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={`relative ${snapshot.isDragging ? 'z-10' : ''}`}
+                        >
+                          <div className={`bg-white rounded-2xl p-2 shadow-sm border ${isActive ? 'border-orange-200 ring-2 ring-orange-100' : 'border-gray-100'} w-full max-w-full`}> 
+                            <div className="flex items-start gap-4 flex-nowrap">
+                              <div className="flex flex-col items-center gap-2 min-w-[48px]">
+                                <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${stop.status === 'delivered' ? 'bg-green-100 border-green-300 text-green-700' : isActive ? 'bg-orange-100 border-orange-300 text-orange-700' : 'bg-gray-100 border-gray-300 text-gray-700'}`}>{stop.status === 'delivered' ? (<CheckCircle className="w-5 h-5" />) : (<span>{index + 1}</span>)}</div>
+                                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>{statusConfig.icon}<span>{statusConfig.label}</span></div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between mb-2 flex-wrap">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                      <h4 className="text-gray-900 text-base truncate max-w-[180px]">{stop.customerName || stop.user_id || stop.order_id}</h4>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-1 flex-wrap break-all">
+                                      <MapPin className="w-3 h-3" />
+                                      <span className="truncate max-w-[180px]">{getAddress(stop)}</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right min-w-[60px]">
+                                    {/* Add your right-side content here if needed */}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-600 mb-1 flex-wrap break-all">
-                          <MapPin className="w-3 h-3" />
-                          <span className="truncate max-w-[180px]">{getAddress(stop)}</span>
-                        </div>
-                      </div>
-                      <div className="text-right min-w-[60px]">
-                        {/* Add your right-side content here if needed */}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
               </div>
-            </div>
-          );
-        })}
+            )}
+          </Droppable>
+        </DragDropContext>
       </div>
     </div>
   );

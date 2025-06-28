@@ -81,5 +81,18 @@ export default async function handler(req, res) {
     res.status(200).json({ ok: true });
     return;
   }
+  if (req.method === 'PATCH') {
+    // Admin reorders delivery schedule
+    const { order_ids, etas } = req.body;
+    if (!Array.isArray(order_ids) || !Array.isArray(etas) || order_ids.length !== etas.length) {
+      return res.status(400).json({ error: 'Invalid order_ids or etas' });
+    }
+    // Update each order's ETA and sequence (optional: add a sequence column if needed)
+    for (let i = 0; i < order_ids.length; i++) {
+      await query('UPDATE orders SET eta = $1, updated_at = NOW() WHERE order_id = $2', [String(etas[i]), order_ids[i]]);
+    }
+    res.status(200).json({ ok: true });
+    return;
+  }
   res.status(405).json({ error: 'Method not allowed' });
 }
