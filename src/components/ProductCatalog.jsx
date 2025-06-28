@@ -2,6 +2,7 @@ import { ProductCard } from './ProductCard';
 
 export function ProductCatalog({ products, cart, onQuantityChange, onGoToCart }) {
   const totalItems = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
+  const hasProducts = products && products.length > 0;
   return (
     <div className="p-4 pb-32 relative">
       <div className="mb-6">
@@ -9,16 +10,23 @@ export function ProductCatalog({ products, cart, onQuantityChange, onGoToCart })
         <p className="text-center text-gray-600 text-sm">Choose your favorite items</p>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            quantity={cart[product.id] || 0}
-            onQuantityChange={onQuantityChange}
-          />
-        ))}
-      </div>
+      {hasProducts ? (
+        <div className="grid grid-cols-2 gap-4">
+          {products.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              quantity={cart[product.id] || 0}
+              onQuantityChange={onQuantityChange}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center min-h-40 text-gray-500 text-lg py-12">
+          <span className="text-5xl mb-2">😔</span>
+          <span>No products available at the moment.</span>
+        </div>
+      )}
 
       {/* Floating Add to Cart Button */}
       {totalItems > 0 && (
